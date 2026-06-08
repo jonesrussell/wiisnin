@@ -88,14 +88,54 @@ on port 8080, docroot `public/`).
   (Vue mounts, no console errors).
 - Landing route built **test-first** (`tests/Integration/LandingPageTest.php`): red → green.
 
-### Phase 1 — entities (skeleton) 🚧
-_(in progress — see entities list below as it lands)_
+### Phase 1 — entities + access (skeleton) ✅
+- Entities defined, registered, and materialized (`schema:sync`).
+- Order workflow (workflows package), three roles + group-scoped access policies,
+  and new-order notifications (Mercure + mail channels, SMS stub) all in place.
+- Order-placement flow and group-scoped access are covered by tests (test-first).
+- Pilot data seeded: Meedjims Foodland + menu + community/menu-category taxonomy.
+
+Seed / verify:
+```powershell
+php vendor/bin/waaseyaa.bat app:seed        # idempotent: Meedjims + menu + taxonomy + group
+php vendor/bin/waaseyaa.bat app:selfcheck   # round-trip entities through storage
+php vendor/bin/waaseyaa.bat schema:check    # detect schema drift
+```
 
 ---
 
 ## Entities
 
-_(populated during Phase 1)_
+Custom content entities (`src/Entity/`), all registered in `config/entity-types.php`.
+Non-key fields are stored in the `_data` JSON blob and marked `FieldStorage::Data`
+so `findBy()` can filter them (see WAASEYAA-FRICTION F-10). Money is integer cents.
+
+| Entity | Type id | Key fields / references |
+|--------|---------|--------------------------|
+| **Vendor** | `vendor` | name, slug, `community_tid`→term, description, hours, `is_open`, `owner_group_id`→group, contact phone/email, `logo_mid`→media. Implements `NotifiableInterface`. |
+| **MenuItem** | `menu_item` | `vendor_id`→vendor, `category_tid`→term, name, description, `price_cents`, `photo_mid`→media, `available` |
+| **Order** | `order` | reference (WSN-NNNNNN), `customer_uid`→user, `vendor_id`→vendor, `status` (workflow), fulfilment, address, `community_tid`, contact phone, payment_method, notes, subtotal/total cents, placed_at/updated_at |
+| **OrderItem** | `order_item` | `order_id`→order, `menu_item_id`→menu_item, name snapshot, quantity, `unit_price_cents` (snapshot), `line_total_cents`, line note |
+| **GroupMembership** | `group_membership` | `group_id`→group, `user_id`→user, role (owner/staff) — app-level membership for the groups package |
+
+Taxonomy (taxonomy package): `community` vocabulary (Massey, Sagamok, Espanola,
+Spanish) and `menu_category` vocabulary (Native cuisine, Grill, Daily specials).
+Vendor groups use the groups package's `group` entity.
+
+**Order workflow** (`src/Domain/Order/OrderWorkflow.php`, workflows package):
+`placed → accepted → preparing → ready → completed`; `cancelled` reachable from
+`placed` or `accepted`.
+
+**Roles & access** (`src/Access/`): `admin` (framework `administrator`),
+`vendor_staff` (scoped to their vendor's group via `VendorStaffDirectory` +
+`group_membership`), `customer`. Policies: `VendorAccessPolicy`,
+`MenuItemAccessPolicy`, `OrderAccessPolicy`, assembled via
+`CommerceAccess::handler()`.
+
+**Notifications** (`src/Notification/`): `OrderPlacedNotification` delivered over a
+`MercureChannel` (app adapter over `MercurePublisher`) and the package
+`MailChannel`. `SmsChannel` + `SmsSenderInterface` are stubs for a future Twilio
+channel (not implemented).
 
 ---
 

@@ -111,4 +111,96 @@ source and unit tests. Fine for a dogfooder, rough for a beta audience.
 
 ## Phase 1 — entities, workflow, access, notifications
 
-_(populated as Phase 1 is built)_
+### 🔴 F-10 — `#[Field]` is `FieldStorage::Column` by default, but the default backend makes no columns
+The default `sql-blob` storage backend stores **only the entity keys** (id, uuid,
+bundle, label, langcode) as real columns; every other field goes into a `_data`
+JSON blob. But `#[Field(stored:)]` defaults to `FieldStorage::Column`. The two
+disagree silently: a full-entity load still works (the read path merges `_data`
+back), but **`findBy(['vendor_id' => …])` emits `vendor.vendor_id` against a
+column that doesn't exist** unless the field is declared `FieldStorage::Data`
+(then the query uses `json_extract(_data,'$.vendor_id')`,
+`SqlEntityQuery.php:275`). So the queryable-by-default mental model is inverted:
+you must opt every queried field into `FieldStorage::Data`.
+
+- **Fix applied:** marked all non-key fields `FieldStorage::Data`. Verified with
+  `app:selfcheck` (blob-field `findBy(vendor_id)` returns the right rows).
+- **Suggested upstream fix:** when the primary backend is `sql-blob`, either
+  treat `Column` fields as `Data` automatically, or fail `schema:sync` loudly if
+  a `Column` field has no column. The silent column-vs-blob split is a footgun.
+
+### 🟡 F-11 — `relationship` package is graph-shaped; wrong tool for belongs-to
+The `relationship` package models a relationship as its own entity record
+(`from_entity_type/id` → `to_entity_type/id`). That's a knowledge-graph edge, not
+a foreign key. For an order-taking domain (menu item belongs to vendor, line
+belongs to order) it would mean an extra record + lookup per association and no
+natural cascade. The lighter `entity_reference` field type couples to
+target-existence validation. I used plain integer FK fields (`vendor_id`,
+`order_id`, …) + `json_extract` queries instead — simplest and most honest for
+this domain. Worth noting the spec said "use the relationship package"; it
+doesn't fit simple ownership.
+
+### 🟡 F-12 — entity type id `order` collides with the SQL reserved word
+Registering an entity type `order` creates a table named `order`. The storage
+layer quotes identifiers so save/find round-trip fine (verified), but it's a
+latent footgun: any hand-written SQL must quote it, and some tools/migrations
+won't. A framework lint warning for reserved-word type ids would help.
+
+### 🔴 F-13 — `#[PolicyAttribute]` policies are auto-instantiated at boot via the container
+Unlike fnpi (whose policies are no-arg and assembled by hand in a
+`WorkspaceAccess::handler()` factory), the kernel **discovers `#[PolicyAttribute]`
+policies and constructs them through the container at boot**. A policy with a
+constructor dependency (here `VendorStaffDirectory`) hard-fails boot —
+`Cannot resolve constructor parameter "directory" … not bound in the kernel
+container` — until that dependency is bound in `ServiceProvider::register()`.
+
+- **Fix applied:** bound `VendorStaffDirectory` as a singleton in
+  `CommerceServiceProvider::register()`.
+- **Suggested upstream:** document that policy constructor deps must be
+  container-bound, and ideally degrade a single unconstructable policy to a clear
+  per-policy error rather than failing the whole kernel boot.
+
+### 🟡 F-14 — `groups` package has no membership concept
+`groups` ships `Group` + `GroupType` but no membership table or API; "who is in
+this group" is left entirely to the app. To scope `vendor_staff` to their
+vendor's group I had to define a `GroupMembership` entity and query it myself.
+Creating a `Group` with bundle `vendor` worked without pre-declaring a
+`GroupType` (good). A first-class membership primitive would remove a lot of
+boilerplate that every multi-tenant app will re-invent identically.
+
+### 🔴 F-15 — no Mercure notification channel exists; dispatcher channels are build-time only
+`notification`'s `NotificationServiceProvider` wires only `mail` + `database`
+channels, and `mercure` ships only a `MercurePublisher` — there is **no Mercure
+`ChannelInterface`**. To satisfy "notify via Mercure + mail" I wrote a
+`MercureChannel` adapter and built my own `NotificationDispatcher` (it's a
+`final` class taking the channel map at construction, with no hook to add a
+channel to the package's existing instance). So adding any channel beyond
+mail/database means replacing the dispatcher binding.
+
+- **Suggested upstream:** ship a `MercureChannel` in the mercure package, and let
+  channels be registered into the dispatcher via a tag/collector rather than a
+  hardcoded `buildChannels()`.
+
+### 🟢 F-16 — workflows value objects are clean (positive)
+`Workflow` + `WorkflowState` + `WorkflowTransition` (hydrated from a states/
+transitions array, with `getValidTransitions()` / `isTransitionAllowed()`) were a
+pleasure — the Order state machine is ~25 lines and fully unit-testable with no
+kernel. The heavier `EditorialWorkflowService` assumes node-ish entities with a
+`workflow_state` field + editorial permissions, so for a plain `status` field I
+used the `Workflow` definition directly via a thin app service. Good primitives;
+just make the low-level path the documented default.
+
+### 🔵 F-17 — taxonomy `Term` has a fixed field set (per-vendor vocab is awkward)
+The spec wanted "a menu_category vocabulary scoped per vendor." `Term` can't
+carry a custom `vendor_id` without extending the framework entity, so a single
+shared `menu_category` vocabulary with app-layer per-vendor scoping is the
+pragmatic skeleton choice. Per-vendor term scoping would need either per-vendor
+vocabularies (id explosion) or extensible term fields.
+
+### 🔵 F-18 — `schema:check` reports drift on framework-shipped tables out of the box
+On a freshly recreated DB (`db:init --sync-schema`), `schema:check` still exits
+non-zero because framework tables drift from their own entity definitions:
+`oidc_client` (and, before the DB was recreated, the `audit_*` tables) are created
+by migrations with `VARCHAR(n)` columns where the entity definitions expect
+`TEXT`. None of Wiisnin's own tables drift. So the app can't use a clean
+`schema:check` as a CI gate until the framework reconciles its migration-created
+column types with its entity-derived expected types.
