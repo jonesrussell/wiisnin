@@ -204,3 +204,61 @@ by migrations with `VARCHAR(n)` columns where the entity definitions expect
 `TEXT`. None of Wiisnin's own tables drift. So the app can't use a clean
 `schema:check` as a CI gate until the framework reconciles its migration-created
 column types with its entity-derived expected types.
+
+---
+
+## Phase B — production deploy (Raspberry Pi: Docker + Caddy + Cloudflare Tunnel + Mercure-over-TLS)
+
+### 🔴 F-19 — production boot guard makes `db:init` un-runnable on a first deploy (chicken-and-egg)
+In `APP_ENV=production` the kernel's `DatabaseBootstrapper` refuses to boot when
+the SQLite file is missing — **and that guard runs before CLI command dispatch**.
+So the very command the error tells you to run can't load:
+```
+[Waaseyaa] Boot failed: Database not found at /app/storage/waaseyaa.sqlite. In
+production, the database must already exist. Run "bin/waaseyaa db:init" ...
+Unknown command: db:init
+```
+`db:init` is only registered after a full boot, which needs the DB, which
+`db:init` is supposed to create. Workaround: `touch` an empty file first (a
+0-byte file is a valid empty SQLite DB), then `db:init --sync-schema` succeeds.
+- **Suggested fix:** let `db:init` (and only `db:init`) run on the minimal
+  console / before the missing-DB guard, so the documented first-deploy command
+  actually works. This will bite every first production deploy.
+
+### 🔴 F-20 — `db:init` alone does not create entity tables; you need `db:init --sync-schema`
+Runbook 03/05 prescribe `db:init` for production. But `db:init` applies
+*migrations* only — it does **not** materialize entity-type tables (vendor,
+order, menu_item, taxonomy_term, group, …). Those come from `schema:sync`. A
+plain `db:init` left the app with no domain tables. `db:init --sync-schema` does
+both. Worth making `--sync-schema` the deploy default (or documenting loudly).
+
+### 🔴 F-21 — Mercure-over-TLS needs hand-assembly (no first-party channel; manual hub + key match)
+Confirmed in production what #1624 reports: there is no first-party Mercure
+notification channel, so a live SSE inbox required:
+- a standalone `dunglas/mercure` service (multi-arch arm64 — fine on the Pi);
+- the app's `MERCURE_JWT_SECRET` (HS256) set equal to the hub's
+  `MERCURE_PUBLISHER_JWT_KEY` **and** `MERCURE_SUBSCRIBER_JWT_KEY`, plus the
+  `anonymous` directive so browser `EventSource` can subscribe without a token;
+- a Caddy route for `/.well-known/mercure` with **`encode` disabled** (gzip/zstd
+  buffers SSE and breaks the stream);
+- the framework `MercurePublisher` signs `mercure.publish ['*']` — the hub must
+  accept that publisher key. None of this is documented; reverse-engineered from
+  `MercurePublisher` source.
+
+### 🟡 F-22 — no "PHP 8.5 + Vite" reference Dockerfile
+The infra had a PHP-8.5 composer-only Dockerfile (fnpi) and a PHP-8.4 composer
++vite one (giiken), but none combining **8.5 + vite**. Had to merge them, and
+remember the 8.5 gotcha that `pdo_sqlite`/`mbstring`/`opcache` are bundled and
+re-installing them fails the build (only `intl`+`zip` need `docker-php-ext-install`).
+
+### 🟡 F-23 — production CLI must run as `www-data` or the SQLite file is unwritable by php-fpm
+Running `db:init`/`app:seed` as the container's default user (root) creates a
+root-owned `waaseyaa.sqlite` (+ WAL/journal), which php-fpm (www-data) then can't
+write at runtime. Had to `docker compose exec -u www-data …`. A note in the
+deploy runbook (or an entrypoint that fixes ownership post-init) would help.
+
+### 🟢 F-24 — the chdir() asset fix (F-04) carried cleanly into production
+The `chdir($projectRoot)` workaround for the Inertia/Vite asset base worked
+unchanged in the container (php-fpm cwd is `/app`, getcwd → `/app/public`), so
+the built `/build/` assets resolved over the tunnel with no extra prod-specific
+handling. Good — but it's still a workaround for F-04.

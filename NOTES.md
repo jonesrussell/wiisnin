@@ -139,11 +139,54 @@ channel (not implemented).
 
 ---
 
+## Live demo (Meedjims) — deployed on the Pi
+
+Deployed to the Raspberry Pi alongside oiatc.ca / fnprocure.ca, following
+`waaseyaa-infra/runbooks/03-add-a-site.md`: Docker Compose → Caddy (plain HTTP) →
+Cloudflare Tunnel, plus a `dunglas/mercure` hub for the live inbox.
+
+- App image built from `github.com/jonesrussell/wiisnin` (pinned `WIISNIN_REF`).
+- Infra change is on branch **`feat/wiisnin`** of `waaseyaa-infra` (PR open) — kept
+  off `main` so it doesn't trigger the other sites' deploy workflows. The Pi is
+  checked out on that branch; **merge the PR to make it durable** (that does
+  trigger the routine idempotent rebuilds of the other sites).
+- Verified end-to-end on the Pi via `Host: wiisnin.ca` (pre-DNS method): landing,
+  menu, order placement, vendor inbox API, Mercure SSE (200). DB reset to a clean
+  seeded state (empty inbox) for the demo.
+
+**Customer:** `https://wiisnin.ca/` → tap Sagamok → Meedjims → add items → Review
+order → Place order → WSN-NNNNNN confirmation.
+
+**Vendor inbox (the wow moment):** `https://wiisnin.ca/vendor` → passphrase
+**`meedjims`** (env `WIISNIN_VENDOR_PASSPHRASE`). New orders appear live over
+Mercure (no refresh); Accept → Preparing → Ready → Completed buttons advance status.
+
+**Going public (your action — Cloudflare/registrar):** the tunnel is
+dashboard-managed, so DNS is added there, not in a zone file. Tunnel id
+`c2de9904-2ac8-479d-b01e-3a533c19fa1c` → hostname
+`c2de9904-2ac8-479d-b01e-3a533c19fa1c.cfargotunnel.com`.
+- Fastest test (no registrar change): Zero Trust → Networks → Tunnels →
+  `oiatc-pi` → Public Hostnames → Add `wiisnin` . `oiatc.ca` → HTTP → `caddy:80`.
+  `https://wiisnin.oiatc.ca` works immediately (Caddy already serves it).
+- Real domain: add `wiisnin.ca` as a Cloudflare site (point the registrar's
+  nameservers to the ones Cloudflare assigns), then add tunnel public hostnames
+  `wiisnin.ca` and `www.wiisnin.ca` → HTTP → `caddy:80` (Cloudflare auto-creates
+  the proxied CNAME to the tunnel).
+
+Redeploy a new app build: bump `WIISNIN_REF` in `compose/docker-compose.yml`, then
+on the Pi `docker compose build wiisnin-app && docker compose up -d wiisnin-app`
+and `docker compose exec -u www-data wiisnin-app vendor/bin/waaseyaa db:init --sync-schema`.
+
+---
+
 ## TODO
 
+- [ ] Merge the `feat/wiisnin` PR on `waaseyaa-infra` to make the deploy durable.
+- [ ] Add the Cloudflare tunnel public hostname for `wiisnin.ca` (+ `www`) and point
+      the registrar's nameservers at Cloudflare (see above).
 - [ ] Rename composer package `waaseyaa/waaseyaa` → `jonesrussell/wiisnin`.
-- [ ] Create the GitHub remote `jonesrussell/wiisnin` and push (this tree had `.git`
-      stripped; a fresh repo was initialised locally).
-- [ ] Confirm Meedjims Foodland's real menu prices with the family (seed uses clearly
-      marked placeholders).
+- [x] Create the GitHub remote `jonesrussell/wiisnin` and push — done (public).
+- [ ] Confirm Meedjims Foodland's real menu prices with the family (currently DRAFT,
+      badged "to be confirmed" everywhere).
 - [ ] Future: SMS notification channel (Twilio) — interface stub only this session.
+- [ ] Optional CI: a `deploy-wiisnin.yml` workflow (needs `gh auth refresh -s workflow`).
