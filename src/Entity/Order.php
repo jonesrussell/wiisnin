@@ -29,8 +29,11 @@ final class Order extends ContentEntityBase
     #[Field(label: 'Reference', description: 'Short human-friendly order code, e.g. WSN-000123.')]
     public string $reference = '';
 
-    #[Field(type: 'integer', label: 'Customer', required: true, description: 'user account id (uid).', stored: FieldStorage::Data)]
+    #[Field(type: 'integer', label: 'Customer', required: true, description: 'user account id (uid); 0 for a guest demo order.', stored: FieldStorage::Data)]
     public ?int $customer_uid = null;
+
+    #[Field(label: 'Customer name', description: 'Name given at checkout (guest orders).', stored: FieldStorage::Data)]
+    public string $customer_name = '';
 
     #[Field(type: 'integer', label: 'Vendor', required: true, description: 'vendor entity id.', stored: FieldStorage::Data)]
     public ?int $vendor_id = null;
@@ -77,6 +80,11 @@ final class Order extends ContentEntityBase
     {
         $uid = $this->get('customer_uid');
         return $uid === null ? null : (int) $uid;
+    }
+
+    public function getCustomerName(): string
+    {
+        return (string) ($this->get('customer_name') ?? '');
     }
 
     public function getVendorId(): ?int

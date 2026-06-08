@@ -16,6 +16,22 @@ final class Communities
     /** @var list<string> Canonical community names, in display order. */
     public const NAMES = ['Massey', 'Sagamok', 'Espanola', 'Spanish'];
 
+    public static function slug(string $name): string
+    {
+        return strtolower($name);
+    }
+
+    /** Resolve a URL slug back to a canonical name, or null if unknown. */
+    public static function nameFromSlug(string $slug): ?string
+    {
+        foreach (self::NAMES as $name) {
+            if (self::slug($name) === strtolower($slug)) {
+                return $name;
+            }
+        }
+        return null;
+    }
+
     /**
      * Landing-page cards: name plus a one-line blurb.
      *
@@ -31,7 +47,11 @@ final class Communities
         ];
 
         return array_map(
-            static fn (string $name): array => ['name' => $name, 'blurb' => $blurbs[$name]],
+            static fn (string $name): array => [
+                'name' => $name,
+                'slug' => self::slug($name),
+                'blurb' => $blurbs[$name],
+            ],
             self::NAMES,
         );
     }

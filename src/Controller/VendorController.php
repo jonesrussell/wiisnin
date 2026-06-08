@@ -1,0 +1,33 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Domain\Catalog\Catalog;
+use App\Support\AppMeta;
+use Waaseyaa\Inertia\Inertia;
+use Waaseyaa\Inertia\InertiaResponse;
+
+/**
+ * A vendor's public page: its menu grouped by category, with draft pricing.
+ */
+final class VendorController
+{
+    public function __construct(
+        private readonly Catalog $catalog,
+    ) {}
+
+    public function show(string $slug): InertiaResponse
+    {
+        $vendor = $this->catalog->vendorBySlug($slug);
+
+        return Inertia::render('Vendor', [
+            'app' => AppMeta::props(),
+            'vendor' => $vendor !== null ? $this->catalog->vendorCard($vendor) : null,
+            'menu' => $vendor !== null ? $this->catalog->menuForVendor((int) $vendor->id()) : [],
+            // Every price shown for this vendor is draft until confirmed.
+            'pricingDraft' => true,
+        ]);
+    }
+}

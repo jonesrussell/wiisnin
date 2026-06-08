@@ -53,6 +53,7 @@ final class OrderService
 
         $order = new Order([
             'customer_uid' => $draft->customerUid,
+            'customer_name' => $draft->customerName,
             'vendor_id' => $draft->vendorId,
             'status' => OrderWorkflow::PLACED,
             'fulfilment' => $draft->fulfilment,

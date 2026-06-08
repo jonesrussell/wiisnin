@@ -100,4 +100,19 @@ return [
             'node' => ['title', 'body'],
         ],
     ],
+
+    // Mercure real-time hub (vendor inbox live updates).
+    // - hub_url: where the PHP app publishes (server-side). Empty disables publishing.
+    // - public_url: where the browser opens an EventSource (must be https in prod).
+    // - jwt_secret: HS256 secret shared with the hub; falls back to the app JWT secret.
+    'mercure' => [
+        'hub_url' => getenv('MERCURE_HUB_URL') ?: '',
+        'public_url' => getenv('MERCURE_PUBLIC_URL') ?: (getenv('MERCURE_HUB_URL') ?: ''),
+        'jwt_secret' => getenv('MERCURE_JWT_SECRET') ?: (getenv('WAASEYAA_JWT_SECRET') ?: ''),
+    ],
+
+    // Wiisnin vendor inbox demo gate (a shared passphrase, not real accounts).
+    'wiisnin' => [
+        'vendor_passphrase' => getenv('WIISNIN_VENDOR_PASSPHRASE') ?: 'meedjims',
+    ],
 ];

@@ -85,27 +85,42 @@ final class WiisninSeeder
         $vendorId = (int) $vendor->id();
         $io->writeln("Seeded vendor 'Meedjims Foodland' (id={$vendorId}, group=" . var_export($groupId, true) . ').');
 
-        // 4. The known menu. Prices are placeholders (0); see PRICE_TODO.
+        // 4. The known menu, with DRAFT prices (integer cents). These are NOT a
+        //    committed price list — the customer + vendor UIs show a visible
+        //    "Draft pricing — to be confirmed with Meedjims" badge everywhere a
+        //    price appears. See self::PRICE_TODO.
         $menu = [
-            'Native cuisine' => ['Scone', 'Indian taco', 'Scone dog', 'Scone & bologna'],
-            'Grill' => ['Hamburger', 'French fries', 'Poutine'],
-            'Daily specials' => ['Soup', 'Sandwich'],
+            'Native cuisine' => [
+                ['name' => 'Scone', 'price_cents' => 400],
+                ['name' => 'Indian taco', 'price_cents' => 1400],
+                ['name' => 'Scone dog', 'price_cents' => 900],
+                ['name' => 'Scone & bologna', 'price_cents' => 800],
+            ],
+            'Grill' => [
+                ['name' => 'Hamburger', 'price_cents' => 800],
+                ['name' => 'French fries', 'price_cents' => 500],
+                ['name' => 'Poutine', 'price_cents' => 1000],
+            ],
+            'Daily specials' => [
+                ['name' => 'Soup', 'price_cents' => 700],
+                ['name' => 'Sandwich', 'price_cents' => 800],
+            ],
         ];
         $count = 0;
         foreach ($menu as $category => $items) {
-            foreach ($items as $name) {
+            foreach ($items as $item) {
                 $this->menuItems->save(new MenuItem([
                     'vendor_id' => $vendorId,
                     'category_tid' => $categoryTids[$category] ?? null,
-                    'name' => $name,
-                    'description' => self::PRICE_TODO,
-                    'price_cents' => 0, // PLACEHOLDER — see PRICE_TODO.
+                    'name' => $item['name'],
+                    'description' => '',
+                    'price_cents' => $item['price_cents'], // DRAFT — see self::PRICE_TODO.
                     'available' => 1,
                 ]));
                 $count++;
             }
         }
-        $io->writeln("Seeded {$count} menu items (all prices are placeholders — confirm with the family).");
+        $io->writeln("Seeded {$count} menu items with DRAFT prices (shown with a 'to be confirmed' badge).");
         $io->writeln('Roles available: ' . implode(', ', array_keys(CommerceAccess::roles())));
 
         return 0;

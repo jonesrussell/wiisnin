@@ -21,6 +21,7 @@ final readonly class OrderDraft
         public string $contactPhone,
         public string $paymentMethod,
         public array $lines,
+        public string $customerName = '',
         public string $address = '',
         public ?int $communityTid = null,
         public string $notes = '',
