@@ -15,6 +15,13 @@ use Symfony\Component\HttpFoundation\Response;
 require __DIR__ . '/../vendor/autoload.php';
 
 $projectRoot = dirname(__DIR__);
+
+// Pin the working directory to the project root. Waaseyaa's InertiaServiceProvider
+// resolves its Vite asset base from getcwd(), which under `php -S -t public` (and
+// some FPM setups) is the docroot, not the project root — leaving the built JS/CSS
+// tags out of the Inertia root template. See WAASEYAA-FRICTION.md.
+chdir($projectRoot);
+
 if (is_file($projectRoot . '/.env')) {
     // Match Minoo: default missing APP_ENV to production (not Symfony's implicit "dev").
     (new \Symfony\Component\Dotenv\Dotenv())->loadEnv($projectRoot . '/.env', 'APP_ENV', 'production');
