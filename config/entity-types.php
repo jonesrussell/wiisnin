@@ -2,21 +2,51 @@
 
 declare(strict_types=1);
 
-/**
- * Application-specific entity types.
- *
- * Return an array of EntityType instances to register additional entity
- * types beyond those provided by Waaseyaa packages.
- *
- * Example:
- *   return [
- *       new \Waaseyaa\Entity\EntityType(
- *           id: 'product',
- *           label: 'Product',
- *           class: \App\Entity\Product::class,
- *           keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'name'],
- *       ),
- *   ];
- */
+use App\Entity\GroupMembership;
+use App\Entity\MenuItem;
+use App\Entity\Order;
+use App\Entity\OrderItem;
+use App\Entity\Vendor;
+use Waaseyaa\Entity\EntityType;
 
-return [];
+/**
+ * Wiisnin entity types.
+ *
+ * Field columns are derived from each class's #[Field] attributes at
+ * schema:sync; the EntityType only needs id/label/class/keys here. Taxonomy
+ * (community, menu_category) uses the taxonomy package's taxonomy_term /
+ * taxonomy_vocabulary types, and vendor groups use the groups package's group
+ * type — those are registered by their own packages, not here.
+ */
+return [
+    new EntityType(
+        id: 'vendor',
+        label: 'Vendor',
+        class: Vendor::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'name'],
+    ),
+    new EntityType(
+        id: 'menu_item',
+        label: 'Menu item',
+        class: MenuItem::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'name'],
+    ),
+    new EntityType(
+        id: 'order',
+        label: 'Order',
+        class: Order::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'reference'],
+    ),
+    new EntityType(
+        id: 'order_item',
+        label: 'Order item',
+        class: OrderItem::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'name_snapshot'],
+    ),
+    new EntityType(
+        id: 'group_membership',
+        label: 'Group membership',
+        class: GroupMembership::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'role'],
+    ),
+];
