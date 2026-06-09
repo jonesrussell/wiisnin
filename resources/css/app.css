@@ -53,6 +53,10 @@ a { color: var(--orange-deep); text-decoration: none; }
 .wsn-wrap { width: 100%; max-width: 480px; margin: 0 auto; flex: 1; padding-bottom: 96px; }
 .wsn-foot { text-align: center; color: var(--muted); font-size: 11px; padding: 14px 16px 22px; }
 
+/* A single-vendor / form page reads best at a narrow measure even on desktop;
+   add .page-narrow to cap it while the storefront list page goes full-width. */
+.page-narrow { width: 100%; }
+
 /* Typography */
 .h1 { font-family: var(--font-display); font-weight: 900; font-size: 22px; margin: 14px 16px 4px; }
 .h2 { font-family: var(--font-display); font-weight: 800; font-size: 18px; margin: 4px 16px; }
@@ -61,7 +65,7 @@ a { color: var(--orange-deep); text-decoration: none; }
 .back { background: none; border: 0; font-family: var(--font-display); font-weight: 700; color: var(--orange); font-size: 14px; padding: 0; cursor: pointer; }
 
 /* Permission / hero */
-.perm { text-align: center; padding: 40px 28px; font-family: var(--font-display); }
+.perm { text-align: center; padding: 40px 28px; font-family: var(--font-display); max-width: 460px; margin-inline: auto; }
 .perm .ring { width: 88px; height: 88px; border-radius: 50%; background: var(--soft-teal); color: var(--teal-deep); display: flex; align-items: center; justify-content: center; font-size: 42px; margin: 0 auto 18px; }
 .perm h2 { font-weight: 900; font-size: 22px; margin: 0 0 8px; }
 .perm p { font-family: var(--font-body); color: var(--muted-2); font-size: 14px; line-height: 1.55; margin: 0 auto 22px; max-width: 320px; }
@@ -190,3 +194,30 @@ a { color: var(--orange-deep); text-decoration: none; }
 .reviewform h4 { font-family: var(--font-display); font-weight: 800; margin: 0 0 8px; }
 .tag.rate { background: var(--soft-orange); color: var(--orange-deep); }
 .muted { color: var(--muted-2); font-size: 13px; margin: 0 16px 10px; }
+
+/* ----------------------------------------------------------------------------
+   Responsive layout (mobile-first). Phones (<768px) render exactly as above:
+   a single ~480px column. Larger screens widen the centered content area and
+   reflow the vendor list into a CSS-grid of auto-sized cards, so desktop uses
+   the space instead of stranding the column in a sea of white.
+   The .vgrid wrapper is a plain block on mobile (no visual change); it only
+   becomes a grid at >=768px.
+---------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .wsn-wrap { max-width: 760px; }
+
+  /* Vendor list -> 2 columns on tablet (auto-fill keeps card sizes steady). */
+  .vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; padding: 4px 16px 2px; align-items: stretch; }
+  .vgrid .vcard { width: auto; margin: 0; height: 100%; }
+
+  /* Single-vendor / checkout / confirmation pages stay a comfortable measure. */
+  .page-narrow { max-width: 640px; margin-inline: auto; }
+
+  /* Sticky cart bar tracks the content width but caps at a sane button size. */
+  .cartbar-inner { max-width: 640px; }
+}
+
+@media (min-width: 1100px) {
+  .wsn-wrap { max-width: 1040px; }
+  /* At this width the auto-fill grid naturally lands on 3 columns. */
+}

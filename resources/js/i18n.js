@@ -7,7 +7,7 @@ import { ref } from 'vue'
 const en = {
   greeting: 'Welcome',
   thanks: 'Thank you',
-  tagline: "wiisnin · let's eat · North Shore",
+  tagline: "let's eat · North Shore",
   findNearYou: 'Find food near you',
   useLocation: 'Use my location',
   browseAll: 'Browse all communities',

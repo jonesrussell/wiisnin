@@ -62,6 +62,7 @@ onUnmounted(() => { if (es) es.close(); if (poll) clearInterval(poll) })
       <span class="live" :class="{ on: connected }"><i></i>{{ connected ? 'Live' : 'Polling' }}</span>
     </template>
 
+    <div class="page-narrow">
     <div class="inbox-head">
       <h2 class="h2" style="margin:8px 0">{{ vendor ? vendor.name + ' · orders' : 'Orders' }}</h2>
     </div>
@@ -82,5 +83,6 @@ onUnmounted(() => { if (es) es.close(); if (poll) clearInterval(poll) })
         <span v-if="!order.transitions || order.transitions.length === 0" class="meta">— done —</span>
       </div>
     </article>
+    </div>
   </AppShell>
 </template>

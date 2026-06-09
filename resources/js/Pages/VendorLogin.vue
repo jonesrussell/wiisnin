@@ -19,6 +19,7 @@ function submit() {
 <template>
   <Head :title="`Vendor inbox — ${app.name}`" />
   <AppShell :app="app">
+    <div class="page-narrow">
     <div class="perm">
       <div class="ring" aria-hidden="true">🔑</div>
       <h2>Order inbox</h2>
@@ -27,5 +28,6 @@ function submit() {
     <div v-if="error" class="error">{{ error }}</div>
     <div class="field"><label>Passphrase</label><input v-model="form.passphrase" type="password" placeholder="passphrase" @keyup.enter="submit" /></div>
     <button class="cta" :disabled="submitting" @click="submit">{{ submitting ? 'Checking…' : 'Open inbox' }}</button>
+    </div>
   </AppShell>
 </template>

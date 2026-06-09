@@ -13,6 +13,7 @@ defineProps({
 <template>
   <Head :title="`Order — ${app.name}`" />
   <AppShell :app="app">
+    <div class="page-narrow">
     <template v-if="order">
       <div class="conf">
         <div class="check" aria-hidden="true">✓</div>
@@ -32,5 +33,6 @@ defineProps({
       <div class="error" style="margin-top:18px">{{ error || 'We could not place that order.' }}</div>
       <Link href="/" class="cta" style="background:var(--orange)">Back home</Link>
     </template>
+    </div>
   </AppShell>
 </template>

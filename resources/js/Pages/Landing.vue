@@ -119,13 +119,16 @@ function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice
       <div class="sech">{{ search.trim() ? `Results for "${search.trim()}"` : (community === 'All' ? (coords ? 'Closest to you' : 'All kitchens') : ('In ' + community)) }}</div>
 
       <template v-if="loading">
-        <div v-for="n in 3" :key="n" class="vcard" style="cursor:default">
-          <div class="vthumb skel"></div>
-          <div style="flex:1"><div class="skel" style="height:14px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:80%"></div></div>
+        <div class="vgrid">
+          <div v-for="n in 3" :key="n" class="vcard" style="cursor:default">
+            <div class="vthumb skel"></div>
+            <div style="flex:1"><div class="skel" style="height:14px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:80%"></div></div>
+          </div>
         </div>
       </template>
 
       <template v-else>
+        <div class="vgrid">
         <button v-for="(v, i) in vendors" :key="v.id" class="vcard" :class="{ sample: !v.is_partner }" @click="openVendor(v)">
           <div class="vthumb" :style="{ background: tint(i) }">
             <span v-if="distLabel(v)" class="distbadge">{{ distLabel(v) }}</span>
@@ -140,6 +143,7 @@ function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice
             </div>
           </div>
         </button>
+        </div>
 
         <div v-if="vendors.length === 0" class="empty">
           No kitchens match yet — try “taco”, “soup” or “pizza”.

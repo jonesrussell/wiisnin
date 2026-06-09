@@ -89,6 +89,7 @@ function placeOrder() {
       <Link href="/" class="back">‹ Near you</Link>
     </template>
 
+    <div class="page-narrow">
     <template v-if="vendor">
       <div class="hero" :class="{ 'hero--photo': vendor.image }" :style="vendor.image ? { backgroundImage: `url(${vendor.image})` } : null">
         <div class="hero-body">
@@ -181,6 +182,7 @@ function placeOrder() {
     </template>
 
     <div v-else class="empty">Kitchen not found.</div>
+    </div>
 
     <!-- Sticky cart -->
     <div v-if="orderable && count > 0" class="cartbar">

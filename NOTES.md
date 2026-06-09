@@ -268,6 +268,12 @@ Vendors (seeded, `app:seed`, idempotent): **Meedjims Foodland (Sagamok)** = the 
   "pizza"→pizzerias.
 - **Distance** display: `<1 km` reads **"nearby"**; otherwise `N km` (1 decimal under 10 km,
   whole number above). Honest, no fake precision.
+- **Responsive layout (mobile-first):** phones unchanged (single ~480px column). At ≥768px the
+  centered content widens (`.wsn-wrap` 760 → 1040 at ≥1100px) and the near-you/community vendor
+  list reflows into a CSS grid (`.vgrid`, `auto-fill minmax(320px,1fr)`) — 2 cols tablet, 3 cols
+  desktop. Single-vendor/checkout/confirmation/inbox/login pages use `.page-narrow` (≤640px,
+  centered) so they stay readable instead of stretching. Header tagline trimmed to
+  "let's eat · North Shore". Verified 375 / 768 / 1280 px: no overflow, no desktop sea-of-white.
 
 Out of scope (next phase, not built): real Nishnaabemwin translations (community deliverable —
 seam left above); decorative Anishinaabe floral motifs (await Russell + community sign-off).

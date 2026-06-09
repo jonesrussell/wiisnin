@@ -22,17 +22,19 @@ function open(v) {
     <h1 class="h1">{{ community.name }}</h1>
     <p class="lead">Kitchens serving {{ community.name }}.</p>
 
-    <button v-for="(v, i) in vendors" :key="v.id" class="vcard" :class="{ sample: !v.is_partner }" @click="open(v)">
-      <div class="vthumb" :style="{ background: TINTS[i % TINTS.length] }"></div>
-      <div style="flex:1">
-        <h3>{{ v.name }}</h3>
-        <p>{{ v.cuisine || v.description }}</p>
-        <div class="tags">
-          <span class="tag" :class="v.is_open ? 'open' : 'closed'">{{ v.is_open ? 'Open now' : 'Closed' }}</span>
-          <span class="tag" :class="v.is_partner ? 'live' : 'sample'">{{ v.is_partner ? 'Order now' : 'Sample listing' }}</span>
+    <div class="vgrid">
+      <button v-for="(v, i) in vendors" :key="v.id" class="vcard" :class="{ sample: !v.is_partner }" @click="open(v)">
+        <div class="vthumb" :style="{ background: TINTS[i % TINTS.length] }"></div>
+        <div style="flex:1">
+          <h3>{{ v.name }}</h3>
+          <p>{{ v.cuisine || v.description }}</p>
+          <div class="tags">
+            <span class="tag" :class="v.is_open ? 'open' : 'closed'">{{ v.is_open ? 'Open now' : 'Closed' }}</span>
+            <span class="tag" :class="v.is_partner ? 'live' : 'sample'">{{ v.is_partner ? 'Order now' : 'Sample listing' }}</span>
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+    </div>
 
     <div v-if="vendors.length === 0" class="empty">No kitchens here yet in {{ community.name }}.</div>
   </AppShell>
