@@ -30,7 +30,7 @@ final class MeedjimsPhotosTest extends TestCase
         $expect = [
             'img/meedjims/building.jpg' => null,
             'img/meedjims/corn-soup.jpg' => null,
-            'img/meedjims/cheese-fries.jpg' => null,
+            'img/meedjims/poutine.jpg' => null,
             'img/meedjims/og-meedjims.jpg' => [1200, 630], // share crop is exactly 1.91:1
         ];
 
@@ -60,6 +60,7 @@ final class MeedjimsPhotosTest extends TestCase
         $this->meedjimsId = (int) $meedjims->id();
 
         $menuItems->save(new MenuItem(['vendor_id' => $this->meedjimsId, 'name' => 'Corn soup', 'price_cents' => 800, 'available' => 1]));
+        $menuItems->save(new MenuItem(['vendor_id' => $this->meedjimsId, 'name' => 'Poutine', 'price_cents' => 1000, 'available' => 1]));
         $menuItems->save(new MenuItem(['vendor_id' => $this->meedjimsId, 'name' => 'Cheese fries', 'price_cents' => 900, 'available' => 1]));
         $menuItems->save(new MenuItem(['vendor_id' => $this->meedjimsId, 'name' => 'Scone', 'price_cents' => 400, 'available' => 1]));
 
@@ -95,7 +96,10 @@ final class MeedjimsPhotosTest extends TestCase
         }
 
         $this->assertSame('/img/meedjims/corn-soup.jpg', $byName['Corn soup'] ?? 'missing');
-        $this->assertSame('/img/meedjims/cheese-fries.jpg', $byName['Cheese fries'] ?? 'missing');
+        $this->assertSame('/img/meedjims/poutine.jpg', $byName['Poutine'] ?? 'missing');
+        // Cheese fries was a mis-label of the poutine photo — back to a placeholder.
+        $this->assertArrayHasKey('Cheese fries', $byName);
+        $this->assertNull($byName['Cheese fries'], 'cheese fries keeps the placeholder');
         $this->assertArrayHasKey('Scone', $byName);
         $this->assertNull($byName['Scone'], 'unphotographed items keep the placeholder');
     }

@@ -188,12 +188,13 @@ and `docker compose exec -u www-data wiisnin-app vendor/bin/waaseyaa db:init --s
 - [x] Create the GitHub remote `jonesrussell/wiisnin` and push — done (public).
 - [ ] Confirm Meedjims Foodland's real menu prices with the family (currently DRAFT,
       badged "to be confirmed" everywhere).
-- [x] **Meedjims real photos** — DONE. The 3 shots (building, corn soup, cheese fries) were
+- [x] **Meedjims real photos** — DONE. The 3 shots (building, corn soup, poutine) were
       dropped into `…\local-eats\meedjims-photos\` and wired in: optimized JPEGs under
-      `public/img/meedjims/` (building.jpg 960w hero, corn-soup.jpg, cheese-fries.jpg ≤800w,
+      `public/img/meedjims/` (building.jpg 960w hero, corn-soup.jpg, poutine.jpg ≤800w,
       og-meedjims.jpg 1200×630 share crop). Building → vendor hero (`.hero--photo` scrim) +
-      Meedjims og:image (`SeoInjector::vendorOgImage`); corn-soup/cheese-fries → those menu
-      items (`Catalog::VENDOR_PHOTOS`). All other items keep colour-tint placeholders.
+      Meedjims og:image (`SeoInjector::vendorOgImage`); corn-soup → Corn soup, poutine → Poutine
+      (`Catalog::VENDOR_PHOTOS`). All other items (incl. Cheese fries) keep colour-tint placeholders.
+      (The 3rd shot was first mis-labelled "cheese fries" — it's poutine; remapped + file renamed.)
 - [ ] Future: SMS notification channel (Twilio) — interface stub only this session.
 - [ ] Optional CI: a `deploy-wiisnin.yml` workflow (needs `gh auth refresh -s workflow`).
 

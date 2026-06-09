@@ -29,7 +29,7 @@ final class Catalog
             'hero' => '/img/meedjims/building.jpg',
             'items' => [
                 'corn soup' => '/img/meedjims/corn-soup.jpg',
-                'cheese fries' => '/img/meedjims/cheese-fries.jpg',
+                'poutine' => '/img/meedjims/poutine.jpg',
             ],
         ],
     ];
