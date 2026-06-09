@@ -66,13 +66,28 @@ final class InMemoryEntityRepository implements EntityRepositoryInterface
         $id = $entity->id();
         if ($id === null || $id === '' || (int) $id === 0) {
             $newId = $this->nextId++;
+            // Set the id on the entity's REAL id key (e.g. 'tid' for terms,
+            // 'mid' for media), not a hardcoded 'id', so id() round-trips.
             /** @phpstan-ignore-next-line dynamic set() on EntityInterface */
-            $entity->set('id', $newId);
+            $entity->set($this->idKey($entity), $newId);
             $this->store[$newId] = $entity;
             return 1; // SAVED_NEW
         }
         $this->store[(int) $id] = $entity;
         return 2; // SAVED_UPDATED
+    }
+
+    private function idKey(EntityInterface $entity): string
+    {
+        try {
+            $keys = new \ReflectionClass($entity)->getProperty('entityKeys')->getValue($entity);
+            if (is_array($keys) && isset($keys['id']) && is_string($keys['id'])) {
+                return $keys['id'];
+            }
+        } catch (\Throwable) {
+            // fall through
+        }
+        return 'id';
     }
 
     public function delete(EntityInterface $entity): void

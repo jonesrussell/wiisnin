@@ -60,6 +60,18 @@ final class Vendor extends ContentEntityBase implements NotifiableInterface
     #[Field(type: 'integer', label: 'Logo', description: 'media entity id (mid) for the vendor logo.', stored: FieldStorage::Data)]
     public ?int $logo_mid = null;
 
+    #[Field(type: 'boolean', label: 'Partner', description: 'True = live orderable partner (Meedjims). False = sample listing, not yet a partner.', default: 0, stored: FieldStorage::Data)]
+    public bool $is_partner = false;
+
+    #[Field(label: 'Cuisine', description: 'Short cuisine line, e.g. "Native cuisine & grill".', stored: FieldStorage::Data)]
+    public string $cuisine = '';
+
+    #[Field(type: 'float', label: 'Latitude', description: 'Vendor latitude for distance sort (geo).', stored: FieldStorage::Data)]
+    public ?float $latitude = null;
+
+    #[Field(type: 'float', label: 'Longitude', description: 'Vendor longitude for distance sort (geo).', stored: FieldStorage::Data)]
+    public ?float $longitude = null;
+
     public function getName(): string
     {
         return (string) ($this->get('name') ?? '');
@@ -95,6 +107,28 @@ final class Vendor extends ContentEntityBase implements NotifiableInterface
     public function getContactEmail(): string
     {
         return (string) ($this->get('contact_email') ?? '');
+    }
+
+    public function isPartner(): bool
+    {
+        return (bool) ($this->get('is_partner') ?? false);
+    }
+
+    public function getCuisine(): string
+    {
+        return (string) ($this->get('cuisine') ?? '');
+    }
+
+    public function getLatitude(): ?float
+    {
+        $v = $this->get('latitude');
+        return $v === null ? null : (float) $v;
+    }
+
+    public function getLongitude(): ?float
+    {
+        $v = $this->get('longitude');
+        return $v === null ? null : (float) $v;
     }
 
     // --- NotifiableInterface -------------------------------------------------

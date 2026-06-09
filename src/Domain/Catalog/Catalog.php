@@ -7,12 +7,12 @@ namespace App\Domain\Catalog;
 use App\Entity\MenuItem;
 use App\Entity\Vendor;
 use Waaseyaa\Entity\Repository\EntityRepositoryInterface;
+use Waaseyaa\Geo\GeoDistance;
 
 /**
- * Read model for the customer-facing storefront: vendors by community, a vendor
- * by slug, and a vendor's menu grouped by category. Returns plain arrays ready
- * to hand to Inertia. Constructed from repositories so it's unit-testable with
- * in-memory doubles.
+ * Read model for the storefront: vendor cards (with optional distance), the
+ * "near you" distance-sorted list (geo package), and a vendor's grouped menu.
+ * Constructed from repositories so it's unit-testable with in-memory doubles.
  */
 final class Catalog
 {
@@ -34,43 +34,74 @@ final class Catalog
     }
 
     /**
+     * Vendors as cards, optionally restricted to a set of ids (search results),
+     * filtered by community, and — when user coords are given — sorted nearest
+     * first with a distance badge. Without coords: partners first, then name.
+     *
+     * @param list<int>|null $restrictIds
      * @return list<array<string, mixed>>
      */
-    public function vendorsInCommunity(string $communityName): array
-    {
-        $tid = $this->termTid('community', $communityName);
-        if ($tid === null) {
-            return [];
-        }
-
-        $out = [];
-        foreach ($this->vendors->findBy(['community_tid' => $tid]) as $vendor) {
-            if ($vendor instanceof Vendor) {
-                $out[] = $this->vendorCard($vendor);
+    public function vendorsNear(
+        ?float $userLat = null,
+        ?float $userLng = null,
+        ?string $community = null,
+        ?array $restrictIds = null,
+    ): array {
+        $cards = [];
+        foreach ($this->vendors->findBy([]) as $vendor) {
+            if (!$vendor instanceof Vendor) {
+                continue;
             }
+            if ($restrictIds !== null && !in_array((int) $vendor->id(), $restrictIds, true)) {
+                continue;
+            }
+            if ($community !== null && $community !== '' && $community !== 'All'
+                && $this->termName($vendor->getCommunityTermId()) !== $community) {
+                continue;
+            }
+
+            $distance = null;
+            if ($userLat !== null && $userLng !== null
+                && $vendor->getLatitude() !== null && $vendor->getLongitude() !== null) {
+                $distance = GeoDistance::haversine($userLat, $userLng, $vendor->getLatitude(), $vendor->getLongitude());
+            }
+            $cards[] = $this->vendorCard($vendor, $distance);
         }
 
-        return $out;
+        usort($cards, static function (array $a, array $b): int {
+            // Distance-sorted when both have it; else partners first, then name.
+            if ($a['distance_km'] !== null && $b['distance_km'] !== null) {
+                return $a['distance_km'] <=> $b['distance_km'];
+            }
+            if ($a['is_partner'] !== $b['is_partner']) {
+                return $a['is_partner'] ? -1 : 1;
+            }
+            return strcmp((string) $a['name'], (string) $b['name']);
+        });
+
+        return $cards;
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function vendorCard(Vendor $vendor): array
+    public function vendorCard(Vendor $vendor, ?float $distanceKm = null): array
     {
         return [
             'id' => (int) $vendor->id(),
             'name' => $vendor->getName(),
             'slug' => $vendor->getSlug(),
             'community' => $this->termName($vendor->getCommunityTermId()),
+            'cuisine' => $vendor->getCuisine(),
             'description' => (string) ($vendor->get('description') ?? ''),
-            'hours' => (string) ($vendor->get('hours') ?? ''),
             'is_open' => $vendor->isOpen(),
+            'is_partner' => $vendor->isPartner(),
+            'distance_km' => $distanceKm === null ? null : round($distanceKm, $distanceKm < 10 ? 1 : 0),
         ];
     }
 
     /**
-     * Menu grouped by category, in the canonical category order.
+     * Menu grouped by category, canonical order.
      *
      * @return list<array{category: string, items: list<array<string, mixed>>}>
      */
@@ -96,25 +127,26 @@ final class Catalog
         uksort($groups, static function (string $a, string $b) use ($order): int {
             $ia = array_search($a, $order, true);
             $ib = array_search($b, $order, true);
-            $ia = $ia === false ? PHP_INT_MAX : $ia;
-            $ib = $ib === false ? PHP_INT_MAX : $ib;
-            return $ia <=> $ib;
+            return ($ia === false ? PHP_INT_MAX : $ia) <=> ($ib === false ? PHP_INT_MAX : $ib);
         });
 
         $out = [];
         foreach ($groups as $category => $items) {
             $out[] = ['category' => $category, 'items' => $items];
         }
-
         return $out;
     }
 
-    private function termTid(string $vid, string $name): ?int
+    /** Menu item names for a vendor (used to build the search document). */
+    public function menuItemNames(int $vendorId): string
     {
-        $rows = $this->terms->findBy(['vid' => $vid, 'name' => $name], null, 1);
-        $term = $rows[0] ?? null;
-
-        return $term !== null ? (int) $term->id() : null;
+        $names = [];
+        foreach ($this->menuItems->findBy(['vendor_id' => $vendorId]) as $item) {
+            if ($item instanceof MenuItem) {
+                $names[] = $item->getName();
+            }
+        }
+        return implode(' ', $names);
     }
 
     private function termName(?int $tid): ?string
@@ -126,7 +158,6 @@ final class Catalog
             return $this->termNames[$tid];
         }
         $term = $this->terms->find((string) $tid);
-
         return $this->termNames[$tid] = $term !== null ? (string) $term->get('name') : null;
     }
 }

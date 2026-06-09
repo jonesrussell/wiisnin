@@ -7,11 +7,14 @@ namespace App\Provider;
 use App\Controller\CommunityController;
 use App\Controller\LandingController;
 use App\Controller\OrderController;
+use App\Controller\PathAliasController;
 use App\Controller\VendorController;
 use App\Controller\VendorInboxController;
+use App\Controller\VendorQueryController;
 use App\Domain\Catalog\Catalog;
 use App\Domain\Order\OrderService;
 use App\Domain\Order\OrderWorkflowService;
+use App\Path\AliasLookupInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Waaseyaa\Entity\EntityTypeManager;
 use Waaseyaa\Foundation\ServiceProvider\ServiceProvider;
@@ -19,6 +22,7 @@ use Waaseyaa\Mercure\MercurePublisher;
 use Waaseyaa\Notification\NotificationDispatcher;
 use Waaseyaa\Routing\RouteBuilder;
 use Waaseyaa\Routing\WaaseyaaRouter;
+use Waaseyaa\Search\SearchProviderInterface;
 
 /**
  * Wiisnin's public site + demo routes.
@@ -73,6 +77,17 @@ final class SiteServiceProvider extends ServiceProvider
         $router->addRoute('vendor.show', RouteBuilder::create('/vendor/{slug}')
             ->controller(fn (Request $r, string $slug) => $this->vendorController()->show($slug))
             ->allowAll()->methods('GET')->build());
+
+        // Location-first home data: vendors near you + search + community filter.
+        $router->addRoute('vendors.api', RouteBuilder::create('/api/vendors')
+            ->controller(fn (Request $r) => $this->vendorQueryController()->index($r))
+            ->allowAll()->methods('GET')->build());
+
+        // Clean vendor aliases (path package), e.g. /meedjims. Lowest priority so
+        // it never shadows the concrete routes above.
+        $router->addRoute('alias', RouteBuilder::create('/{alias}')
+            ->controller(fn (Request $r, string $alias) => $this->pathAliasController()->show($alias))
+            ->allowAll()->methods('GET')->priority(-10)->build());
     }
 
     // --- lazy controller factories (request time) ----------------------------
@@ -96,6 +111,27 @@ final class SiteServiceProvider extends ServiceProvider
     private function vendorController(): VendorController
     {
         return new VendorController($this->catalog());
+    }
+
+    private function vendorQueryController(): VendorQueryController
+    {
+        $search = null;
+        try {
+            $resolved = $this->resolve(SearchProviderInterface::class);
+            $search = $resolved instanceof SearchProviderInterface ? $resolved : null;
+        } catch (\Throwable) {
+            $search = null;
+        }
+
+        return new VendorQueryController($this->catalog(), $search);
+    }
+
+    private function pathAliasController(): PathAliasController
+    {
+        $aliases = $this->resolve(AliasLookupInterface::class);
+        \assert($aliases instanceof AliasLookupInterface);
+
+        return new PathAliasController($this->catalog(), $aliases);
     }
 
     private function orderController(): OrderController

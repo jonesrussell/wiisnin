@@ -51,6 +51,7 @@ final class OrderPlacementTest extends TestCase
             'name' => 'Meedjims Foodland',
             'slug' => 'meedjims-foodland',
             'is_open' => 1,
+            'is_partner' => 1,
             'contact_email' => 'meedjims@example.test',
             'contact_phone' => '705-865-1537',
         ]);
@@ -134,6 +135,17 @@ final class OrderPlacementTest extends TestCase
             (string) $this->vendorId,
             $this->mail->sent[0]['notifiable']->getNotifiableId(),
         );
+    }
+
+    #[Test]
+    public function a_sample_non_partner_vendor_rejects_orders(): void
+    {
+        $vendor = $this->vendors->find((string) $this->vendorId);
+        $vendor->set('is_partner', 0); // sample listing
+        $this->vendors->save($vendor);
+
+        $this->expectException(\DomainException::class);
+        $this->service()->place($this->draft());
     }
 
     #[Test]

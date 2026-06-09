@@ -4,32 +4,52 @@ declare(strict_types=1);
 
 namespace App\Provider;
 
+use App\Access\VendorStaffDirectory;
+use App\Domain\Catalog\Catalog;
 use App\Entity\MenuItem;
 use App\Entity\Order;
 use App\Entity\Vendor;
-use App\Access\VendorStaffDirectory;
+use App\Http\SeoMetaMiddleware;
+use App\Import\MenuCsvImporter;
 use App\Notification\Channel\MercureChannel;
 use App\Notification\Channel\SmsChannel;
+use App\Path\AliasLookupInterface;
+use App\Path\VendorAliasResolver;
 use App\Seed\WiisninSeeder;
+use Waaseyaa\CLI\ArgumentDefinition;
+use Waaseyaa\CLI\ArgumentMode;
 use Waaseyaa\CLI\CliIO;
 use Waaseyaa\CLI\CommandDefinition;
+use Waaseyaa\CLI\OptionDefinition;
+use Waaseyaa\CLI\OptionMode;
 use Waaseyaa\Entity\EntityTypeManager;
+use Waaseyaa\Foundation\ServiceProvider\Capability\HasMiddlewareInterface;
 use Waaseyaa\Foundation\ServiceProvider\Capability\HasNativeCommandsInterface;
 use Waaseyaa\Foundation\ServiceProvider\ServiceProvider;
 use Waaseyaa\Mail\MailerInterface;
 use Waaseyaa\Mercure\MercurePublisher;
 use Waaseyaa\Notification\Channel\MailChannel;
 use Waaseyaa\Notification\NotificationDispatcher;
+use Waaseyaa\Path\PathAliasResolver;
 use Waaseyaa\Queue\QueueInterface;
 
 /**
  * Wiisnin commerce wiring: the new-order NotificationDispatcher (Mercure + mail
- * + SMS-stub channels) and CLI commands for self-check and seeding.
+ * + SMS-stub channels), the path-alias lookup, the server-rendered SEO meta
+ * middleware, and CLI commands (seed, self-check, menu CSV import).
  */
-final class CommerceServiceProvider extends ServiceProvider implements HasNativeCommandsInterface
+final class CommerceServiceProvider extends ServiceProvider implements HasNativeCommandsInterface, HasMiddlewareInterface
 {
     public function register(): void
     {
+        // Path-alias lookup (path package) so /meedjims resolves to a vendor.
+        $this->singleton(AliasLookupInterface::class, function (): AliasLookupInterface {
+            $etm = $this->resolve(EntityTypeManager::class);
+            \assert($etm instanceof EntityTypeManager);
+
+            return new VendorAliasResolver(new PathAliasResolver($etm->getStorage('path_alias')));
+        });
+
         // The kernel auto-discovers #[PolicyAttribute] access policies and
         // instantiates them via the container, so their VendorStaffDirectory
         // dependency must be bound before boot. (See WAASEYAA-FRICTION.md.)
@@ -78,8 +98,69 @@ final class CommerceServiceProvider extends ServiceProvider implements HasNative
         });
     }
 
+    /**
+     * Server-rendered SEO/OpenGraph meta injected into the HTML <head> so social
+     * scrapers (which never run Vue) see rich share cards.
+     *
+     * @return list<\Waaseyaa\Foundation\Middleware\HttpMiddlewareInterface>
+     */
+    public function middleware(EntityTypeManager $entityTypeManager): array
+    {
+        $catalog = new Catalog(
+            $entityTypeManager->getRepository('vendor'),
+            $entityTypeManager->getRepository('menu_item'),
+            $entityTypeManager->getRepository('taxonomy_term'),
+        );
+        $aliases = $this->resolve(AliasLookupInterface::class);
+        \assert($aliases instanceof AliasLookupInterface);
+        $baseUrl = (string) (getenv('APP_URL') ?: ($this->config['app_url'] ?? ''));
+
+        return [new SeoMetaMiddleware($catalog, $aliases, $baseUrl)];
+    }
+
     public function nativeCommands(): iterable
     {
+        yield new CommandDefinition(
+            name: 'app:import-menu',
+            description: 'Import a vendor menu from CSV (columns: category,item,description,price_cents,available) into MenuItem entities.',
+            arguments: [
+                new ArgumentDefinition(name: 'csv', mode: ArgumentMode::Required, description: 'Path to the CSV file.'),
+            ],
+            options: [
+                new OptionDefinition(name: 'vendor', mode: OptionMode::Required, description: 'Vendor slug to import into (default meedjims-foodland).'),
+            ],
+            handler: function (CliIO $io): int {
+                $etm = $this->resolve(EntityTypeManager::class);
+                if (!$etm instanceof EntityTypeManager) {
+                    $io->error('Import requires a booted kernel (EntityTypeManager).');
+                    return 1;
+                }
+                $slug = (string) ($io->option('vendor') ?: 'meedjims-foodland');
+                $catalog = new Catalog(
+                    $etm->getRepository('vendor'),
+                    $etm->getRepository('menu_item'),
+                    $etm->getRepository('taxonomy_term'),
+                );
+                $vendor = $catalog->vendorBySlug($slug);
+                if ($vendor === null) {
+                    $io->error("Unknown vendor slug: {$slug}");
+                    return 1;
+                }
+                $importer = new MenuCsvImporter(
+                    $etm->getRepository('menu_item'),
+                    $etm->getRepository('taxonomy_term'),
+                );
+                $result = $importer->importFile((string) $io->argument('csv'), (int) $vendor->id());
+                foreach ($result['errors'] as $err) {
+                    $io->error($err);
+                }
+                $io->writeln("Imported {$result['imported']} item(s), skipped {$result['skipped']} for {$slug}.");
+
+                return $result['errors'] === [] ? 0 : 1;
+            },
+        );
+
+
         yield new CommandDefinition(
             name: 'app:seed',
             description: 'Seed the pilot vendor (Meedjims Foodland, Sagamok), its menu, and the community + menu-category taxonomy. Idempotent. Prices are placeholders.',
@@ -90,12 +171,22 @@ final class CommerceServiceProvider extends ServiceProvider implements HasNative
                     return 1;
                 }
 
+                $searchIndexer = null;
+                try {
+                    $resolved = $this->resolve(\Waaseyaa\Search\SearchIndexerInterface::class);
+                    $searchIndexer = $resolved instanceof \Waaseyaa\Search\SearchIndexerInterface ? $resolved : null;
+                } catch (\Throwable) {
+                    $searchIndexer = null;
+                }
+
                 $seeder = new WiisninSeeder(
                     $etm->getRepository('taxonomy_term'),
                     $etm->getRepository('vendor'),
                     $etm->getRepository('menu_item'),
                     $etm->getRepository('group'),
                     $etm->getRepository('group_membership'),
+                    $etm->getRepository('path_alias'),
+                    $searchIndexer,
                 );
 
                 return $seeder->run($io);

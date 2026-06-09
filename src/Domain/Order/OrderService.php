@@ -42,6 +42,9 @@ final class OrderService
         if (!$vendor instanceof Vendor) {
             throw new \DomainException('Unknown vendor.');
         }
+        if (!$vendor->isPartner()) {
+            throw new \DomainException('This is a sample listing, not a live Wiisnin partner yet — ordering is disabled.');
+        }
         if (!$vendor->isOpen()) {
             throw new \DomainException('This vendor is not accepting orders right now.');
         }

@@ -36,7 +36,7 @@ final class CustomerOrderRouteTest extends TestCase
         $this->orders = new InMemoryEntityRepository();
         $this->orderItems = new InMemoryEntityRepository();
 
-        $vendor = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_open' => 1]);
+        $vendor = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_open' => 1, 'is_partner' => 1]);
         $this->vendors->save($vendor);
         $this->vendorId = (int) $vendor->id();
 

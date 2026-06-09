@@ -16,6 +16,24 @@ final class Communities
     /** @var list<string> Canonical community names, in display order. */
     public const NAMES = ['Massey', 'Sagamok', 'Espanola', 'Spanish'];
 
+    /**
+     * Approximate community centroids [lat, lng] for the distance sort (geo).
+     *
+     * @var array<string, array{0: float, 1: float}>
+     */
+    public const CENTROIDS = [
+        'Massey' => [46.2142, -82.0833],
+        'Sagamok' => [46.1310, -82.5730],
+        'Espanola' => [46.2583, -81.7680],
+        'Spanish' => [46.1930, -82.3420],
+    ];
+
+    /** @return array{0: float, 1: float}|null */
+    public static function centroid(string $name): ?array
+    {
+        return self::CENTROIDS[$name] ?? null;
+    }
+
     public static function slug(string $name): string
     {
         return strtolower($name);

@@ -1,0 +1,10 @@
+category,item,description,price_cents,available
+Native cuisine,Scone,Fresh fried bannock,400,1
+Native cuisine,Indian taco,On a fresh scone,1400,1
+Native cuisine,Scone dog,Wrapped in scone,900,1
+Native cuisine,Scone & bologna,A classic,800,1
+Grill,Hamburger,Made daily,800,1
+Grill,French fries,Hand-cut,500,1
+Grill,Poutine,Gravy & curds,1000,1
+Grill,Cheese fries,Poutine-style,900,1
+Daily specials,Corn soup,House favourite,800,1
