@@ -206,7 +206,7 @@ Design system (`resources/css/app.css`, self-hosted fonts via `@fontsource`):
 - Palette: cream `#FFFDF8`, ink `#2B2622`, **orange `#E8612C`** (CTAs/wordmark), **teal `#1D9E75`** (accents/cart), tan/soft tints. All as CSS custom properties.
 - Type: **Nunito** (display/wordmark/headings), **Inter** (body) — bundled into `/build`, no runtime CDN.
 - Mobile-first cards, sticky cart bar, draft-price badges everywhere, skeletons, focus-visible, prefers-reduced-motion.
-- Cultural note: a light "Boozhoo!/Miigwech" warmth only; **floral/visual motifs need Russell's + community sign-off** before adding — left out deliberately.
+- Cultural note: a light "Ahnii!/Miigwech" warmth only; **floral/visual motifs need Russell's + community sign-off** before adding — left out deliberately.
 
 Location-first home (`Pages/Landing.vue` + `GET /api/vendors`):
 - Browser Geolocation → vendors across all four communities **sorted by distance** (`geo` `GeoDistance::haversine`, km), with a "Browse all" fallback when denied. Community is an optional filter chip row.
@@ -236,7 +236,7 @@ Vendors (seeded, `app:seed`, idempotent): **Meedjims Foodland (Sagamok)** = the 
 
 > **⚠️ CULTURAL RULE — translations are a community deliverable, not ours.**
 > No Ojibwe/Nishnaabemwin words are invented, guessed, or machine-translated.
-> The ONLY confirmed words in use: **Wiisnin** (eat), **Boozhoo**, **Aaniin**, **Miigwech**.
+> The ONLY confirmed words in use: **Wiisnin** (eat), **Ahnii** (hello — Russell's Sagamok spelling), **Miigwech**.
 > Every other UI string and every entity `*_oj` field is **left English on purpose** — that
 > English fallback IS the visible "translation needed" state.
 > **Seam to fill in:** `resources/lang/oj.php` + the `oj` dictionary in `resources/js/i18n.js`

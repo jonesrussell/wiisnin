@@ -78,7 +78,7 @@ function tint(i) { return TINTS[i % TINTS.length] }
       <div class="perm">
         <div class="ring" aria-hidden="true">◎</div>
         <h2>Find food near you</h2>
-        <p>Boozhoo! Share your location and Wiisnin shows the kitchens closest to you across the North Shore — Sagamok, Massey, Espanola and the towns between — closest first.</p>
+        <p>Ahnii! Share your location and Wiisnin shows the kitchens closest to you across the North Shore — Sagamok, Massey, Espanola and the towns between — closest first.</p>
         <button class="cta" style="width:100%;margin:0 0 10px" @click="useLocation">Use my location</button>
         <button class="back" style="font-size:15px" @click="browseAll">Browse all communities</button>
       </div>

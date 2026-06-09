@@ -333,7 +333,7 @@ locale + the dictionary as Inertia props, or ship a JS twin of `Translator`) is 
 gap every SPA-on-Waaseyaa app will hit.
 - **Cultural note (not framework friction, but recorded):** no Ojibwe/Nishnaabemwin words are
   invented or machine-translated. `resources/lang/oj.php` and the JS `oj` dictionary contain
-  ONLY confirmed words (Boozhoo, Aaniin, Miigwech; "Wiisnin" = eat). Every other key falls
+  ONLY confirmed words (Ahnii, Miigwech; "Wiisnin" = eat). Every other key falls
   back to English on purpose — that is the visible "translation needed" seam for Russell / the
   community to fill in. See NOTES.md.
 

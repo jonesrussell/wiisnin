@@ -10,8 +10,8 @@ declare(strict_types=1);
 // absence IS the "translation needed" list. Russell / the community / the
 // Anishinaabemowin corpus fill the rest. See NOTES.md.
 return [
-    'greeting' => 'Boozhoo',  // confirmed
+    'greeting' => 'Ahnii',    // confirmed (Russell's Sagamok spelling)
     'thanks' => 'Miigwech',   // confirmed
-    'hello' => 'Aaniin',      // confirmed
+    'hello' => 'Ahnii',       // confirmed (Russell's Sagamok spelling)
     // brand "Wiisnin" (= "eat") is the app name, used as-is everywhere.
 ];

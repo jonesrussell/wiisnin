@@ -5,7 +5,7 @@ import { ref } from 'vue'
 // of English-only keys (needsTranslation) is the "translation needed" seam for
 // Russell / the community to fill — do NOT machine-translate.
 const en = {
-  greeting: 'Welcome',
+  greeting: 'Ahnii',
   thanks: 'Thank you',
   tagline: "let's eat · North Shore",
   findNearYou: 'Find food near you',
@@ -20,7 +20,7 @@ const en = {
   leaveReview: 'Leave a review',
 }
 const oj = {
-  greeting: 'Boozhoo',
+  greeting: 'Ahnii',
   thanks: 'Miigwech',
   // brand stays "Wiisnin". All other keys intentionally absent → English fallback.
 }
