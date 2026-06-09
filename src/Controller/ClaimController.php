@@ -70,6 +70,12 @@ final class ClaimController
             . "Phone:  " . ($phone !== '' ? $phone : '—') . "\n"
             . "Email:  " . ($email !== '' ? $email : '—') . "\n"
             . "Note:   " . ($note !== '' ? $note : '—') . "\n";
+        // Mail is best-effort; the stored ClaimRequest is the durable record. The
+        // send must NEVER pollute the JSON response — e.g. an unconfigured
+        // LocalTransport raises a file_put_contents() *warning* (not an exception,
+        // so try/catch alone won't stop it) that would prepend HTML to the body
+        // and break the client's res.json(). Swallow warnings for the duration.
+        set_error_handler(static fn (): bool => true);
         try {
             $this->mailer->send(new Envelope(
                 to: [$this->notifyEmail],
@@ -78,7 +84,9 @@ final class ClaimController
                 textBody: $body,
             ));
         } catch (\Throwable) {
-            // Mail is best-effort; the stored ClaimRequest is the durable record.
+            // ignore — durable record already stored
+        } finally {
+            restore_error_handler();
         }
     }
 

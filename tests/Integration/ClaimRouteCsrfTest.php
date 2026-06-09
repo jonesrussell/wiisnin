@@ -12,6 +12,8 @@ use App\Tests\Support\InMemoryEntityRepository;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Waaseyaa\Mail\Envelope;
+use Waaseyaa\Mail\MailerInterface;
 
 /**
  * The owner claim endpoint is CSRF-protected, stores a durable ClaimRequest,
@@ -107,6 +109,28 @@ final class ClaimRouteCsrfTest extends TestCase
         $this->assertSame(422, $noContact->getStatusCode());
 
         $this->assertCount(0, $this->claims->findBy([]));
+    }
+
+    #[Test]
+    public function a_claim_is_stored_even_when_mail_throws(): void
+    {
+        $throwing = new class implements MailerInterface {
+            public function send(Envelope $envelope): void
+            {
+                throw new \RuntimeException('no transport configured');
+            }
+        };
+        $catalog = new Catalog($this->vendors, new InMemoryEntityRepository(), new InMemoryEntityRepository());
+        $controller = new ClaimController($catalog, new ClaimService($this->claims, static fn (): int => 1), $throwing);
+
+        $response = $controller->create(
+            $this->post('wing-house', self::TOKEN, ['owner_name' => 'Jo Owner', 'phone' => '705-555-0100']),
+            'wing-house',
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertTrue(json_decode((string) $response->getContent(), true)['ok']);
+        $this->assertCount(1, $this->claims->findBy([]), 'the durable claim is stored even when mail fails');
     }
 
     #[Test]
