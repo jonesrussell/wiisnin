@@ -302,3 +302,37 @@ The package maps a 2-column GFM prompt→value table onto ONE entity's fields; i
 a multi-row CSV of many menu items. Built a small `App\Import\MenuCsvImporter` (CSV rows →
 MenuItem entities, resolving category→term) for the spec's `category,item,description,
 price_cents,available` import instead. A first-class tabular/CSV importer would help.
+
+---
+
+## Phase 2 — i18n (Anishinaabemowin) + engagement (reviews)
+
+### 🔴 F-29 — `engagement` has no star-rating / review primitive
+`engagement` ships `Comment`, `Reaction`, and `Follow`. None carry a numeric rating:
+`Reaction` is a typed flag (like/emoji) with no 1–5 scale, and `Comment` is free text with
+no score. The spec's "1–5 stars + text review, average + count on the vendor" has no
+matching primitive, so a `Comment` would need a parallel rating store keyed by comment id —
+more plumbing than just owning the data.
+- **Fix applied:** small app entity `App\Entity\Review` (vendor_id, author_uid, author_name,
+  rating 1–5, body, `status` visible|hidden for moderation, created_at) + `ReviewService`
+  (partner-only create, average/count summary, hide). Same call made for `structured-import`
+  in F-28: when the package primitive doesn't fit, own the small entity.
+- **Suggested upstream:** a first-class `Rating`/`Review` type in `engagement` (subject ref +
+  numeric score + optional body + moderation status), or a `score` field on `Reaction`.
+
+### 🔵 F-30 — `i18n` `Translator` is server-side (PHP/Twig); SPA chrome needs its own client layer
+The `i18n` `Translator` (loads `resources/lang/{locale}.php`, falls back through the chain,
+returns the key when missing) is built for server-rendered output. Wiisnin's chrome is an
+Inertia/Vue SPA, so server-side `t()` calls don't reach Vue components after hydration. Had
+to build a parallel client composable (`resources/js/i18n.js`: a `locale` ref persisted to
+localStorage + a `wsn_lang` cookie so the server can localize entity fields on the next
+request, with the same key-returns-when-missing fallback). Per-entity translated fields use
+app `*_oj` blob fields with a `Catalog::localized()` fallback (oj when non-empty, else
+English). Not a bug — but "how to drive `i18n` from an Inertia front end" (share the active
+locale + the dictionary as Inertia props, or ship a JS twin of `Translator`) is an undocumented
+gap every SPA-on-Waaseyaa app will hit.
+- **Cultural note (not framework friction, but recorded):** no Ojibwe/Nishnaabemwin words are
+  invented or machine-translated. `resources/lang/oj.php` and the JS `oj` dictionary contain
+  ONLY confirmed words (Boozhoo, Aaniin, Miigwech; "Wiisnin" = eat). Every other key falls
+  back to English on purpose — that is the visible "translation needed" seam for Russell / the
+  community to fill in. See NOTES.md.

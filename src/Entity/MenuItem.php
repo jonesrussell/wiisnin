@@ -33,6 +33,12 @@ final class MenuItem extends ContentEntityBase
     #[Field(type: 'text', label: 'Description', stored: FieldStorage::Data)]
     public string $description = '';
 
+    #[Field(label: 'Name (Nishnaabemwin)', description: 'Anishinaabemowin name — blank until community-confirmed (i18n seam).', stored: FieldStorage::Data)]
+    public string $name_oj = '';
+
+    #[Field(type: 'text', label: 'Description (Nishnaabemwin)', stored: FieldStorage::Data)]
+    public string $description_oj = '';
+
     #[Field(type: 'integer', label: 'Price (cents)', required: true, description: 'Money in integer cents. PLACEHOLDER until confirmed.', stored: FieldStorage::Data)]
     public int $price_cents = 0;
 

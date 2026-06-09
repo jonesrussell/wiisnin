@@ -60,6 +60,11 @@ return [
     'i18n' => [
         'languages' => [
             ['id' => 'en', 'label' => 'English', 'is_default' => true],
+            // Anishinaabemowin (Nishnaabemwin / Eastern Ojibwe — Sagamok dialect).
+            // The MECHANISM is wired; real translations must come from Russell /
+            // the community (resources/lang/oj.php is the seam). Until then oj
+            // falls back to English per the framework Translator fallback chain.
+            ['id' => 'oj', 'label' => 'Nishnaabemwin', 'is_default' => false],
         ],
     ],
 

@@ -8,10 +8,48 @@ const props = defineProps({
   app: { type: Object, required: true },
   vendor: { type: Object, default: null },
   menu: { type: Array, default: () => [] },
+  reviews: { type: Array, default: () => [] },
   pricingDraft: { type: Boolean, default: true },
 })
 
 const orderable = computed(() => props.vendor && props.vendor.is_partner)
+
+// --- Reviews -------------------------------------------------------------
+function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice(0, r) + '☆☆☆☆☆'.slice(0, 5 - r) }
+const reviewList = ref([...props.reviews])
+const ratingSum = reactive({
+  average: props.vendor?.rating?.average ?? null,
+  count: props.vendor?.rating?.count ?? 0,
+})
+const rv = reactive({ author_name: '', rating: 5, body: '' })
+const rvSubmitting = ref(false)
+const rvError = ref('')
+const rvThanks = ref(false)
+const canReview = computed(() => rv.author_name.trim() && rv.rating >= 1 && rv.rating <= 5 && !rvSubmitting.value)
+
+async function submitReview() {
+  if (!canReview.value) return
+  rvSubmitting.value = true
+  rvError.value = ''
+  try {
+    const res = await fetch(`/vendor/${props.vendor.slug}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ author_name: rv.author_name.trim(), rating: rv.rating, body: rv.body.trim() }),
+    })
+    const data = await res.json()
+    if (!res.ok || !data.ok) { rvError.value = data.error || 'Could not save your review.'; return }
+    reviewList.value = data.reviews || reviewList.value
+    if (data.summary) { ratingSum.average = data.summary.average; ratingSum.count = data.summary.count }
+    rv.author_name = ''; rv.rating = 5; rv.body = ''
+    rvThanks.value = true
+  } catch (e) {
+    rvError.value = 'Could not save your review.'
+  } finally {
+    rvSubmitting.value = false
+  }
+}
 
 const cart = reactive({})
 const showCheckout = ref(false)
@@ -47,6 +85,10 @@ function placeOrder() {
       <div class="hero">
         <h2>{{ vendor.name }}</h2>
         <p>{{ vendor.cuisine }} · {{ vendor.is_open ? 'Open now' : 'Closed' }} · pickup or delivery</p>
+        <p v-if="ratingSum.count > 0" class="rating-sum">
+          <span class="stars">{{ stars(ratingSum.average) }}</span>
+          <b>{{ ratingSum.average }}</b> · {{ ratingSum.count }} review{{ ratingSum.count === 1 ? '' : 's' }}
+        </p>
       </div>
 
       <p v-if="!orderable" class="samplebar">
@@ -74,6 +116,37 @@ function placeOrder() {
               <button class="add" @click="add(item)" :aria-label="`add ${item.name}`">+</button>
             </div>
           </div>
+        </section>
+
+        <!-- Reviews -->
+        <section class="reviews">
+          <h3 class="menu-cat-title">Reviews</h3>
+
+          <div v-for="r in reviewList" :key="r.id" class="review">
+            <div class="review-head">
+              <span class="stars">{{ stars(r.rating) }}</span>
+              <b>{{ r.author_name }}</b>
+            </div>
+            <p v-if="r.body">{{ r.body }}</p>
+          </div>
+          <p v-if="reviewList.length === 0" class="muted">No reviews yet.</p>
+
+          <!-- Leave a review: partners only (honesty rule). -->
+          <template v-if="orderable">
+            <div v-if="rvThanks" class="draftbar">Miigwech — thanks for your review!</div>
+            <form v-else class="reviewform" @submit.prevent="submitReview">
+              <h4>Leave a review</h4>
+              <div class="starpick" role="radiogroup" aria-label="Your rating">
+                <button v-for="n in 5" :key="n" type="button" class="star" :class="{ on: n <= rv.rating }"
+                        :aria-label="`${n} star${n === 1 ? '' : 's'}`" @click="rv.rating = n">★</button>
+              </div>
+              <div class="field"><label>Your name</label><input v-model="rv.author_name" type="text" placeholder="Your name" /></div>
+              <div class="field"><label>Your review</label><textarea v-model="rv.body" rows="2" placeholder="How was it?"></textarea></div>
+              <p v-if="rvError" class="samplebar">{{ rvError }}</p>
+              <button class="cta" type="submit" :disabled="!canReview">{{ rvSubmitting ? 'Saving…' : 'Post review' }}</button>
+            </form>
+          </template>
+          <p v-else class="muted">Reviews open when {{ vendor.name }} joins Wiisnin.</p>
         </section>
       </template>
 

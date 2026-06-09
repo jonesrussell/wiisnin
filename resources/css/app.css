@@ -159,3 +159,28 @@ a { color: var(--orange-deep); text-decoration: none; }
 /* Skeleton */
 .skel { background: linear-gradient(90deg, #f3ece0 25%, #faf4ea 37%, #f3ece0 63%); background-size: 400% 100%; animation: shimmer 1.3s infinite; border-radius: 16px; }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* Language toggle + greeting */
+.greet { font-family: var(--font-display); font-weight: 700; font-size: 12px; color: var(--teal-deep); white-space: nowrap; }
+.langtoggle { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.langtoggle button { border: 0; background: #fff; font-family: var(--font-display); font-weight: 700; font-size: 12px; padding: 5px 9px; color: var(--muted-2); cursor: pointer; }
+.langtoggle button.on { background: var(--teal); color: #fff; }
+
+/* Reviews */
+.stars { color: var(--orange); font-size: 15px; letter-spacing: 1px; }
+.stars .off { color: #E7D6BC; }
+.rating-sum { font-family: var(--font-display); font-weight: 800; font-size: 13px; color: var(--muted-2); }
+.review { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin: 0 16px 10px; }
+.review .who { font-family: var(--font-display); font-weight: 800; font-size: 14px; }
+.review .body { color: var(--muted-2); font-size: 13px; margin: 4px 0 0; }
+.review.hidden { opacity: .55; }
+.starpick button { background: none; border: 0; font-size: 26px; color: #E7D6BC; cursor: pointer; padding: 0 2px; }
+.starpick button.on { color: var(--orange); }
+.review-head { display: flex; align-items: center; gap: 8px; }
+.review-head b { font-family: var(--font-display); font-weight: 800; font-size: 14px; }
+.review p { color: var(--muted-2); font-size: 13px; margin: 4px 0 0; }
+.reviews { margin-top: 18px; }
+.reviewform { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin: 0 16px; }
+.reviewform h4 { font-family: var(--font-display); font-weight: 800; margin: 0 0 8px; }
+.tag.rate { background: var(--soft-orange); color: var(--orange-deep); }
+.muted { color: var(--muted-2); font-size: 13px; margin: 0 16px 10px; }

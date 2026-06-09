@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Domain\Catalog\Catalog;
+use App\Domain\Review\ReviewService;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+
+/**
+ * Customer review creation (public) and staff moderation (passphrase-gated, same
+ * cookie as the vendor inbox).
+ */
+final class ReviewController
+{
+    private const COOKIE = 'wsn_vendor';
+
+    public function __construct(
+        private readonly Catalog $catalog,
+        private readonly ReviewService $reviews,
+        private readonly string $cookieSecret,
+    ) {}
+
+    public function create(Request $request, string $slug): JsonResponse
+    {
+        $vendor = $this->catalog->vendorBySlug($slug);
+        if ($vendor === null) {
+            return new JsonResponse(['error' => 'not found'], 404);
+        }
+
+        $data = $this->payload($request);
+        try {
+            $this->reviews->create(
+                (int) $vendor->id(),
+                0, // guest demo review
+                (string) ($data['author_name'] ?? $data['name'] ?? ''),
+                (int) ($data['rating'] ?? 0),
+                (string) ($data['body'] ?? ''),
+            );
+        } catch (\DomainException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 422);
+        }
+
+        return new JsonResponse([
+            'ok' => true,
+            'summary' => $this->reviews->summary((int) $vendor->id()),
+            'reviews' => $this->reviews->listFor((int) $vendor->id()),
+        ]);
+    }
+
+    public function hide(Request $request, string $id): JsonResponse
+    {
+        if (!$this->authed($request)) {
+            return new JsonResponse(['error' => 'unauthorized'], 401);
+        }
+
+        return new JsonResponse(['ok' => $this->reviews->hide((int) $id)]);
+    }
+
+    private function authed(Request $request): bool
+    {
+        $cookie = (string) $request->cookies->get(self::COOKIE, '');
+        $token = hash_hmac('sha256', 'wiisnin-vendor-inbox', $this->cookieSecret);
+
+        return $cookie !== '' && hash_equals($token, $cookie);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payload(Request $request): array
+    {
+        $raw = $request->getContent();
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return $request->request->all();
+    }
+}

@@ -36,6 +36,9 @@ final class VendorQueryController
 
         $query = trim((string) $request->query->get('q', ''));
 
+        $langRaw = (string) ($request->query->get('lang') ?: $request->cookies->get('wsn_lang', ''));
+        $locale = $langRaw === 'oj' ? 'oj' : 'en';
+
         $restrictIds = null;
         if ($query !== '' && $this->search !== null) {
             $restrictIds = [];
@@ -53,7 +56,7 @@ final class VendorQueryController
         }
 
         return new JsonResponse([
-            'vendors' => $this->catalog->vendorsNear($lat, $lng, $community, $restrictIds),
+            'vendors' => $this->catalog->vendorsNear($lat, $lng, $community, $restrictIds, $locale),
             'located' => $lat !== null && $lng !== null,
             'query' => $query,
         ]);

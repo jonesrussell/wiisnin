@@ -18,14 +18,15 @@ final class VendorController
         private readonly Catalog $catalog,
     ) {}
 
-    public function show(string $slug): InertiaResponse
+    public function show(string $slug, string $locale = 'en'): InertiaResponse
     {
         $vendor = $this->catalog->vendorBySlug($slug);
 
         return Inertia::render('Vendor', [
             'app' => AppMeta::props(),
-            'vendor' => $vendor !== null ? $this->catalog->vendorCard($vendor) : null,
-            'menu' => $vendor !== null ? $this->catalog->menuForVendor((int) $vendor->id()) : [],
+            'vendor' => $vendor !== null ? $this->catalog->vendorCard($vendor, null, $locale) : null,
+            'menu' => $vendor !== null ? $this->catalog->menuForVendor((int) $vendor->id(), $locale) : [],
+            'reviews' => $vendor !== null ? $this->catalog->reviewsFor((int) $vendor->id()) : [],
             // Every price shown for this vendor is draft until confirmed.
             'pricingDraft' => true,
         ]);

@@ -1,7 +1,8 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AppShell from '../Layouts/AppShell.vue'
+import { useI18n } from '../i18n.js'
 
 const props = defineProps({
   app: { type: Object, required: true },
@@ -11,6 +12,7 @@ const props = defineProps({
 // Card thumbnail tints so the list looks warm without photos yet.
 const TINTS = ['#E8612C', '#1D9E75', '#3C6E89', '#C46A2B', '#15795A', '#E8612C', '#1D9E75', '#3C6E89']
 
+const { locale } = useI18n()
 const located = ref(false)        // has the user shared location / chosen browse?
 const loading = ref(false)
 const denied = ref(false)
@@ -31,6 +33,7 @@ async function load() {
   if (coords.value) { p.set('lat', coords.value.lat); p.set('lng', coords.value.lng) }
   if (community.value !== 'All') p.set('community', community.value)
   if (search.value.trim()) p.set('q', search.value.trim())
+  if (locale.value === 'oj') p.set('lang', 'oj')
   try {
     const res = await fetch('/api/vendors?' + p.toString(), { credentials: 'same-origin' })
     const data = await res.json()
@@ -57,13 +60,20 @@ function onSearch() {
   searchTimer = setTimeout(load, 250)
 }
 function setCommunity(c) { community.value = c; load() }
+watch(locale, () => { if (located.value) load() })
 
 function openVendor(v) {
   if (v.is_partner) { router.visit('/vendor/' + v.slug) }
   else { sampleNote.value = `${v.name} is a sample listing — this neighbour isn't a Wiisnin partner yet. Meedjims Foodland is the live kitchen to try.` }
 }
 function tint(i) { return TINTS[i % TINTS.length] }
-function distLabel(v) { return v.distance_km != null ? (v.distance_km + ' km') : '' }
+function distLabel(v) {
+  const d = v.distance_km
+  if (d == null) return ''
+  if (d < 1) return 'nearby'
+  return (d < 10 ? d : Math.round(d)) + ' km'
+}
+function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice(0, r) + '☆☆☆☆☆'.slice(0, 5 - r) }
 </script>
 
 <template>
@@ -126,6 +136,7 @@ function distLabel(v) { return v.distance_km != null ? (v.distance_km + ' km') :
             <div class="tags">
               <span class="tag" :class="v.is_open ? 'open' : 'closed'">{{ v.is_open ? 'Open now' : 'Closed' }}</span>
               <span class="tag" :class="v.is_partner ? 'live' : 'sample'">{{ v.is_partner ? 'Order now' : 'Sample listing' }}</span>
+              <span v-if="v.rating && v.rating.count > 0" class="tag rate"><span class="stars">{{ stars(v.rating.average) }}</span> {{ v.rating.average }} ({{ v.rating.count }})</span>
             </div>
           </div>
         </button>

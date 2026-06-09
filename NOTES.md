@@ -212,4 +212,49 @@ Free framework features:
 
 Vendors (seeded, `app:seed`, idempotent): **Meedjims Foodland (Sagamok)** = the only live, orderable partner (real 9-item menu, draft prices). Sample "not yet a partner" listings: Back Home Bistro, Tony V's Pizza (Massey); Cortina, Topper's Pizza, Deluxe Drive-In (Espanola); North Channel Pizza, Dixie Lee Chicken (Spanish). Sample vendors are browsable but **not orderable** (`OrderService` rejects non-partners; `is_partner` flag).
 
-Out of scope (next phase, not built): i18n Anishinaabemowin layer; engagement reviews/ratings.
+---
+
+## Phase 2 — i18n (Anishinaabemowin) + reviews
+
+### i18n — Anishinaabemowin (Nishnaabemwin / Eastern Ojibwe, Sagamok dialect)
+- **Header toggle** EN ↔ Nish (`AppShell.vue` `.langtoggle`). Choice persists in
+  `localStorage['wsn_lang']` **and** a `wsn_lang` cookie so the server can localize
+  entity fields on the next request. Composable: `resources/js/i18n.js` (`useI18n()` →
+  `locale`, `setLocale`, `t(key)`).
+- **UI chrome** translatable client-side; **per-entity fields** (vendor + menu item
+  name/description) via app `*_oj` blob fields with `Catalog::localized()` fallback
+  (Nish when the `*_oj` field is non-empty, else English).
+- Framework `i18n` `Translator` is server/Twig-side only — it doesn't reach the Vue SPA
+  after hydration — so the client composable is a deliberate twin. See FRICTION **F-30**.
+
+> **⚠️ CULTURAL RULE — translations are a community deliverable, not ours.**
+> No Ojibwe/Nishnaabemwin words are invented, guessed, or machine-translated.
+> The ONLY confirmed words in use: **Wiisnin** (eat), **Boozhoo**, **Aaniin**, **Miigwech**.
+> Every other UI string and every entity `*_oj` field is **left English on purpose** — that
+> English fallback IS the visible "translation needed" state.
+> **Seam to fill in:** `resources/lang/oj.php` + the `oj` dictionary in `resources/js/i18n.js`
+> (chrome strings), and the `name_oj` / `description_oj` fields per vendor & menu item (content).
+> Real translations must come from **Russell / the Sagamok community / the
+> LLC/anishinaabemowin corpus** — do not fill these from any other source.
+
+### Reviews & ratings (`App\Entity\Review` + `ReviewService` + `ReviewController`)
+- Customers leave **1–5 stars + text** on a vendor; **average + count** show on the vendor
+  card (Landing) and the vendor page hero (`Vendor.vue`).
+- **Honesty rule enforced:** only the live partner (**Meedjims**, `is_partner=true`) accepts
+  reviews; sample listings reject with a clear message (`ReviewService::create` throws
+  `DomainException`; `POST /vendor/{slug}/reviews` → 422). Verified locally + tested
+  (`ReviewServiceTest`).
+- **Moderation:** `status` visible|hidden; `POST /vendor/reviews/{id}/hide` is passphrase-gated
+  (same `wsn_vendor` cookie/HMAC as the vendor inbox). Hidden reviews drop out of the average.
+- `engagement` has no rating primitive (Comment/Reaction/Follow only) — see FRICTION **F-29**;
+  Review is a small app entity, same call as the CSV importer (F-28).
+
+### Polish
+- **Search** now matches cuisine too (already in the FTS body): "italian"→Cortina,
+  "pizza"→pizzerias.
+- **Distance** display: `<1 km` reads **"nearby"**; otherwise `N km` (1 decimal under 10 km,
+  whole number above). Honest, no fake precision.
+
+Out of scope (next phase, not built): real Nishnaabemwin translations (community deliverable —
+seam left above); Meedjims real photos (placeholders kept — see TODO); decorative Anishinaabe
+floral motifs (await Russell + community sign-off).

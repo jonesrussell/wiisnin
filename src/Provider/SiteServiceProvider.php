@@ -8,12 +8,14 @@ use App\Controller\CommunityController;
 use App\Controller\LandingController;
 use App\Controller\OrderController;
 use App\Controller\PathAliasController;
+use App\Controller\ReviewController;
 use App\Controller\VendorController;
 use App\Controller\VendorInboxController;
 use App\Controller\VendorQueryController;
 use App\Domain\Catalog\Catalog;
 use App\Domain\Order\OrderService;
 use App\Domain\Order\OrderWorkflowService;
+use App\Domain\Review\ReviewService;
 use App\Path\AliasLookupInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Waaseyaa\Entity\EntityTypeManager;
@@ -45,7 +47,7 @@ final class SiteServiceProvider extends ServiceProvider
             ->allowAll()->methods('GET')->build());
 
         $router->addRoute('community.show', RouteBuilder::create('/c/{slug}')
-            ->controller(fn (Request $r, string $slug) => $this->communityController()->show($slug))
+            ->controller(fn (Request $r, string $slug) => $this->communityController()->show($slug, $this->localeFrom($r)))
             ->allowAll()->methods('GET')->build());
 
         $router->addRoute('order.place', RouteBuilder::create('/order')
@@ -74,8 +76,17 @@ final class SiteServiceProvider extends ServiceProvider
             ->controller(fn (Request $r, string $vid) => $this->vendorInboxController()->ordersJson($r, $vid))
             ->allowAll()->methods('GET')->build());
 
+        // Reviews: customers create; vendor_staff/admin hide (passphrase-gated).
+        $router->addRoute('review.create', RouteBuilder::create('/vendor/{slug}/reviews')
+            ->controller(fn (Request $r, string $slug) => $this->reviewController()->create($r, $slug))
+            ->allowAll()->methods('POST')->priority(10)->build());
+
+        $router->addRoute('review.hide', RouteBuilder::create('/vendor/reviews/{id}/hide')
+            ->controller(fn (Request $r, string $id) => $this->reviewController()->hide($r, $id))
+            ->allowAll()->methods('POST')->priority(10)->build());
+
         $router->addRoute('vendor.show', RouteBuilder::create('/vendor/{slug}')
-            ->controller(fn (Request $r, string $slug) => $this->vendorController()->show($slug))
+            ->controller(fn (Request $r, string $slug) => $this->vendorController()->show($slug, $this->localeFrom($r)))
             ->allowAll()->methods('GET')->build());
 
         // Location-first home data: vendors near you + search + community filter.
@@ -88,7 +99,7 @@ final class SiteServiceProvider extends ServiceProvider
         // given a priority that beats the SSR page fallback but stays below the
         // concrete /vendor inbox route above.
         $router->addRoute('alias', RouteBuilder::create('/{alias}')
-            ->controller(fn (Request $r, string $alias) => $this->pathAliasController()->show($alias))
+            ->controller(fn (Request $r, string $alias) => $this->pathAliasController()->show($alias, $this->localeFrom($r)))
             ->requirement('alias', '[a-z0-9][a-z0-9-]*')
             ->allowAll()->methods('GET')->priority(5)->build());
     }
@@ -103,7 +114,22 @@ final class SiteServiceProvider extends ServiceProvider
             $etm->getRepository('vendor'),
             $etm->getRepository('menu_item'),
             $etm->getRepository('taxonomy_term'),
+            $this->reviewService(),
         );
+    }
+
+    private function reviewService(): ReviewService
+    {
+        $etm = $this->entityTypeManager();
+
+        return new ReviewService($etm->getRepository('review'), $etm->getRepository('vendor'));
+    }
+
+    private function reviewController(): ReviewController
+    {
+        $secret = (string) ($this->config['mercure']['jwt_secret'] ?? (getenv('WAASEYAA_JWT_SECRET') ?: 'wiisnin'));
+
+        return new ReviewController($this->catalog(), $this->reviewService(), $secret);
     }
 
     private function communityController(): CommunityController
@@ -178,6 +204,13 @@ final class SiteServiceProvider extends ServiceProvider
             $publicUrl,
             $secret,
         );
+    }
+
+    /** Interface language from ?lang= or the wsn_lang cookie ('oj' or 'en'). */
+    private function localeFrom(Request $request): string
+    {
+        $lang = (string) ($request->query->get('lang') ?: $request->cookies->get('wsn_lang', ''));
+        return $lang === 'oj' ? 'oj' : 'en';
     }
 
     private function entityTypeManager(): EntityTypeManager

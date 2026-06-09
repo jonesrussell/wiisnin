@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog;
 
+use App\Domain\Review\ReviewService;
 use App\Entity\MenuItem;
 use App\Entity\Vendor;
 use Waaseyaa\Entity\Repository\EntityRepositoryInterface;
@@ -23,7 +24,18 @@ final class Catalog
         private readonly EntityRepositoryInterface $vendors,
         private readonly EntityRepositoryInterface $menuItems,
         private readonly EntityRepositoryInterface $terms,
+        private readonly ?ReviewService $reviews = null,
     ) {}
+
+    /**
+     * Visible reviews for a vendor (newest first); [] when reviews aren't wired.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function reviewsFor(int $vendorId): array
+    {
+        return $this->reviews?->listFor($vendorId) ?? [];
+    }
 
     public function vendorBySlug(string $slug): ?Vendor
     {
@@ -46,6 +58,7 @@ final class Catalog
         ?float $userLng = null,
         ?string $community = null,
         ?array $restrictIds = null,
+        string $locale = 'en',
     ): array {
         $cards = [];
         foreach ($this->vendors->findBy([]) as $vendor) {
@@ -65,7 +78,7 @@ final class Catalog
                 && $vendor->getLatitude() !== null && $vendor->getLongitude() !== null) {
                 $distance = GeoDistance::haversine($userLat, $userLng, $vendor->getLatitude(), $vendor->getLongitude());
             }
-            $cards[] = $this->vendorCard($vendor, $distance);
+            $cards[] = $this->vendorCard($vendor, $distance, $locale);
         }
 
         usort($cards, static function (array $a, array $b): int {
@@ -85,19 +98,32 @@ final class Catalog
     /**
      * @return array<string, mixed>
      */
-    public function vendorCard(Vendor $vendor, ?float $distanceKm = null): array
+    public function vendorCard(Vendor $vendor, ?float $distanceKm = null, string $locale = 'en'): array
     {
         return [
             'id' => (int) $vendor->id(),
-            'name' => $vendor->getName(),
+            'name' => $this->localized($vendor, 'name', $locale),
             'slug' => $vendor->getSlug(),
             'community' => $this->termName($vendor->getCommunityTermId()),
             'cuisine' => $vendor->getCuisine(),
-            'description' => (string) ($vendor->get('description') ?? ''),
+            'description' => $this->localized($vendor, 'description', $locale),
             'is_open' => $vendor->isOpen(),
             'is_partner' => $vendor->isPartner(),
             'distance_km' => $distanceKm === null ? null : round($distanceKm, $distanceKm < 10 ? 1 : 0),
+            'rating' => $this->reviews?->summary((int) $vendor->id()) ?? ['average' => null, 'count' => 0],
         ];
+    }
+
+    /** Localized field value: the *_oj field for Nishnaabemwin when non-empty, else English. */
+    private function localized(Vendor|MenuItem $entity, string $field, string $locale): string
+    {
+        if ($locale === 'oj') {
+            $oj = (string) ($entity->get($field . '_oj') ?? '');
+            if ($oj !== '') {
+                return $oj;
+            }
+        }
+        return (string) ($entity->get($field) ?? '');
     }
 
     /**
@@ -105,7 +131,7 @@ final class Catalog
      *
      * @return list<array{category: string, items: list<array<string, mixed>>}>
      */
-    public function menuForVendor(int $vendorId): array
+    public function menuForVendor(int $vendorId, string $locale = 'en'): array
     {
         $groups = [];
         foreach ($this->menuItems->findBy(['vendor_id' => $vendorId]) as $item) {
@@ -116,8 +142,8 @@ final class Catalog
             $groups[$category] ??= [];
             $groups[$category][] = [
                 'id' => (int) $item->id(),
-                'name' => $item->getName(),
-                'description' => $item->getDescription(),
+                'name' => $this->localized($item, 'name', $locale),
+                'description' => $this->localized($item, 'description', $locale),
                 'price_cents' => $item->getPriceCents(),
                 'available' => $item->isAvailable(),
             ];

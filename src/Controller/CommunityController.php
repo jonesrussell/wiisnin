@@ -19,7 +19,7 @@ final class CommunityController
         private readonly Catalog $catalog,
     ) {}
 
-    public function show(string $slug): InertiaResponse
+    public function show(string $slug, string $locale = 'en'): InertiaResponse
     {
         $name = Communities::nameFromSlug($slug);
 
@@ -29,7 +29,7 @@ final class CommunityController
                 'name' => $name ?? ucfirst($slug),
                 'slug' => $name !== null ? Communities::slug($name) : $slug,
             ],
-            'vendors' => $name !== null ? $this->catalog->vendorsNear(null, null, $name, null) : [],
+            'vendors' => $name !== null ? $this->catalog->vendorsNear(null, null, $name, null, $locale) : [],
         ]);
     }
 }

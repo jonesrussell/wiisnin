@@ -6,6 +6,7 @@ use App\Entity\GroupMembership;
 use App\Entity\MenuItem;
 use App\Entity\Order;
 use App\Entity\OrderItem;
+use App\Entity\Review;
 use App\Entity\Vendor;
 use Waaseyaa\Entity\EntityType;
 
@@ -48,5 +49,11 @@ return [
         label: 'Group membership',
         class: GroupMembership::class,
         keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'role'],
+    ),
+    new EntityType(
+        id: 'review',
+        label: 'Review',
+        class: Review::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'author_name'],
     ),
 ];

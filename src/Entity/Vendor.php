@@ -66,6 +66,12 @@ final class Vendor extends ContentEntityBase implements NotifiableInterface
     #[Field(label: 'Cuisine', description: 'Short cuisine line, e.g. "Native cuisine & grill".', stored: FieldStorage::Data)]
     public string $cuisine = '';
 
+    #[Field(label: 'Name (Nishnaabemwin)', description: 'Anishinaabemowin name — blank until community-confirmed (i18n seam).', stored: FieldStorage::Data)]
+    public string $name_oj = '';
+
+    #[Field(type: 'text', label: 'Description (Nishnaabemwin)', description: 'Anishinaabemowin description — blank until confirmed.', stored: FieldStorage::Data)]
+    public string $description_oj = '';
+
     #[Field(type: 'float', label: 'Latitude', description: 'Vendor latitude for distance sort (geo).', stored: FieldStorage::Data)]
     public ?float $latitude = null;
 

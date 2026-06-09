@@ -20,13 +20,13 @@ final class PathAliasController
         private readonly AliasLookupInterface $aliases,
     ) {}
 
-    public function show(string $alias): Response|InertiaResponse
+    public function show(string $alias, string $locale = 'en'): Response|InertiaResponse
     {
         $slug = $this->aliases->vendorSlug('/' . $alias);
         if ($slug === null) {
             return new Response('Not found.', 404, ['Content-Type' => 'text/html; charset=UTF-8']);
         }
 
-        return new VendorController($this->catalog)->show($slug);
+        return new VendorController($this->catalog)->show($slug, $locale);
     }
 }
