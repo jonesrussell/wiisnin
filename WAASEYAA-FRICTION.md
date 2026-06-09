@@ -336,3 +336,27 @@ gap every SPA-on-Waaseyaa app will hit.
   ONLY confirmed words (Boozhoo, Aaniin, Miigwech; "Wiisnin" = eat). Every other key falls
   back to English on purpose — that is the visible "translation needed" seam for Russell / the
   community to fill in. See NOTES.md.
+
+---
+
+## Phase 2b — security hardening
+
+### 🔴 F-31 — `CsrfMiddleware` exempts `application/json`, leaving app JSON POST endpoints uncovered
+`CsrfMiddleware` (user package) skips CSRF validation for any request whose `Content-Type`
+starts with `application/json` or `application/vnd.api+json` (`CsrfMiddleware.php:25,179-186`),
+on the reasoning that "browsers cannot send `application/json` from HTML forms." That holds
+**only if the endpoint strictly requires a JSON body**. Our review endpoint posted JSON *and*
+accepted a form-encoded fallback (`$request->request->all()`), so a forged cross-site HTML
+form (`application/x-www-form-urlencoded`) would reach it **with no CSRF check** — the order
+endpoint (form-based) was protected by the middleware, the review endpoint silently was not.
+- **Fix applied:** validate the token in the controller (`ReviewController::hasValidCsrfToken`)
+  mirroring the middleware's accepted sources (`_csrf_token` field / `X-CSRF-Token` /
+  URL-decoded `X-XSRF-TOKEN`) against `$_SESSION['_csrf_token']`; the Vue fetch echoes the
+  framework's non-HttpOnly `XSRF-TOKEN` cookie as `X-XSRF-TOKEN` (the same token Inertia's
+  axios sends on the order path). Token-less / bad-token POST → 403; in-app POST succeeds.
+  Tested in `tests/Integration/ReviewRouteCsrfTest.php` (5 cases).
+- **Suggested upstream:** either (a) don't exempt JSON content types — modern CSRF guidance
+  is to validate a token regardless of content type; or (b) expose the validation as a public
+  helper / route option (`->csrf(true)`) so an app can opt a JSON route back into protection
+  without re-implementing `hasValidToken()`. Today the middleware's `hasValidToken()` is
+  private, so the controller has to duplicate it.

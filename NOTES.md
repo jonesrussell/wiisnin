@@ -188,6 +188,11 @@ and `docker compose exec -u www-data wiisnin-app vendor/bin/waaseyaa db:init --s
 - [x] Create the GitHub remote `jonesrussell/wiisnin` and push — done (public).
 - [ ] Confirm Meedjims Foodland's real menu prices with the family (currently DRAFT,
       badged "to be confirmed" everywhere).
+- [ ] **Meedjims real photos** — drop the 3 shots (building, corn soup, cheese fries) into
+      `C:\Users\jones\Projects\business\local-eats\meedjims-photos\` (currently only a
+      README placeholder — no images). Once present they wire into the vendor hero, the
+      Corn soup / Cheese fries menu items, and Meedjims' og:image (building shot). Until
+      then the warm color-tint placeholders stay. (Job 2 of Session 7 skipped cleanly: folder empty.)
 - [ ] Future: SMS notification channel (Twilio) — interface stub only this session.
 - [ ] Optional CI: a `deploy-wiisnin.yml` workflow (needs `gh auth refresh -s workflow`).
 
@@ -248,6 +253,13 @@ Vendors (seeded, `app:seed`, idempotent): **Meedjims Foodland (Sagamok)** = the 
   (same `wsn_vendor` cookie/HMAC as the vendor inbox). Hidden reviews drop out of the average.
 - `engagement` has no rating primitive (Comment/Reaction/Follow only) — see FRICTION **F-29**;
   Review is a small app entity, same call as the CSV importer (F-28).
+- **CSRF (Phase 2b):** the review POST is token-protected. The framework's `CsrfMiddleware`
+  *exempts* `application/json`, so it never covered this JSON endpoint (and the endpoint had a
+  form fallback a forged form could hit) — see FRICTION **F-31**. `ReviewController` now
+  validates the session token (sources mirror the middleware: `_csrf_token` field /
+  `X-CSRF-Token` / URL-decoded `X-XSRF-TOKEN`); the Vue fetch echoes the framework's
+  `XSRF-TOKEN` cookie as `X-XSRF-TOKEN` (same token Inertia's axios sends on `/order`).
+  Token-less/bad → 403; in-app → 200. Tested in `tests/Integration/ReviewRouteCsrfTest.php`.
 
 ### Polish
 - **Search** now matches cuisine too (already in the FTS body): "italian"→Cortina,

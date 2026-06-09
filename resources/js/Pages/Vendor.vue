@@ -27,6 +27,14 @@ const rvError = ref('')
 const rvThanks = ref(false)
 const canReview = computed(() => rv.author_name.trim() && rv.rating >= 1 && rv.rating <= 5 && !rvSubmitting.value)
 
+// The framework sets a non-HttpOnly XSRF-TOKEN cookie on every HTML page load;
+// echo it back as X-XSRF-TOKEN so the server can verify the request is in-app
+// (same token Inertia's axios sends on the order path).
+function xsrfToken() {
+  const m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/)
+  return m ? m[1] : ''
+}
+
 async function submitReview() {
   if (!canReview.value) return
   rvSubmitting.value = true
@@ -34,7 +42,7 @@ async function submitReview() {
   try {
     const res = await fetch(`/vendor/${props.vendor.slug}/reviews`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrfToken() },
       credentials: 'same-origin',
       body: JSON.stringify({ author_name: rv.author_name.trim(), rating: rv.rating, body: rv.body.trim() }),
     })

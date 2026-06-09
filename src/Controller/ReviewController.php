@@ -25,6 +25,10 @@ final class ReviewController
 
     public function create(Request $request, string $slug): JsonResponse
     {
+        if (!$this->hasValidCsrfToken($request)) {
+            return $this->csrfFailure();
+        }
+
         $vendor = $this->catalog->vendorBySlug($slug);
         if ($vendor === null) {
             return new JsonResponse(['error' => 'not found'], 404);
@@ -52,11 +56,56 @@ final class ReviewController
 
     public function hide(Request $request, string $id): JsonResponse
     {
+        if (!$this->hasValidCsrfToken($request)) {
+            return $this->csrfFailure();
+        }
         if (!$this->authed($request)) {
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
         return new JsonResponse(['ok' => $this->reviews->hide((int) $id)]);
+    }
+
+    /**
+     * Validate the CSRF token the same way the framework's CsrfMiddleware does.
+     *
+     * The middleware exempts application/json bodies (a cross-site HTML form
+     * can't send that content type), so this JSON endpoint isn't covered by it —
+     * and it accepts a form-encoded fallback, which a forged form COULD reach.
+     * We therefore enforce the session-bound token here. Accepted sources mirror
+     * the middleware: the `_csrf_token` POST field, the `X-CSRF-Token` header, or
+     * the URL-decoded `X-XSRF-TOKEN` header (the value of the framework's
+     * non-HttpOnly XSRF-TOKEN cookie, which the in-app fetch echoes back — the
+     * same token Inertia's axios sends on the order path).
+     */
+    private function hasValidCsrfToken(Request $request): bool
+    {
+        $session = $_SESSION['_csrf_token'] ?? '';
+        if (!is_string($session) || $session === '') {
+            return false;
+        }
+
+        $field = $request->request->get('_csrf_token');
+        if (is_string($field) && hash_equals($session, $field)) {
+            return true;
+        }
+
+        $header = $request->headers->get('X-CSRF-Token');
+        if (is_string($header) && hash_equals($session, $header)) {
+            return true;
+        }
+
+        $xsrf = $request->headers->get('X-XSRF-TOKEN');
+        if (is_string($xsrf) && hash_equals($session, rawurldecode($xsrf))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function csrfFailure(): JsonResponse
+    {
+        return new JsonResponse(['error' => 'CSRF token validation failed.'], 403);
     }
 
     private function authed(Request $request): bool
