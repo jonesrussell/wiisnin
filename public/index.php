@@ -39,4 +39,13 @@ try {
     $response = new Response($payload, 500, ['Content-Type' => 'application/vnd.api+json']);
 }
 
+// Server-render SEO/OpenGraph meta into the <head> so social scrapers (which
+// never run the Vue <Head>) get rich share cards. Done here — the one
+// post-dispatch hook the app owns. See WAASEYAA-FRICTION.md.
+try {
+    \App\Http\SeoInjector::inject($response, $projectRoot);
+} catch (\Throwable) {
+    // SEO is best-effort; never break the response over it.
+}
+
 $response->send();

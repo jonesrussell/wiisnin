@@ -262,3 +262,43 @@ The `chdir($projectRoot)` workaround for the Inertia/Vite asset base worked
 unchanged in the container (php-fpm cwd is `/app`, getcwd → `/app/public`), so
 the built `/build/` assets resolved over the tunnel with no extra prod-specific
 handling. Good — but it's still a workaround for F-04.
+
+---
+
+## Redesign phase — location-first UI + framework features (geo / search / path / seo / structured-import)
+
+### 🟢 F-25 — geo, search and path packages wired cleanly
+`Geo\GeoDistance::haversine(lat1,lng1,lat2,lng2)` (returns km, static, no map deps)
+powered the distance sort; `search` (FTS5 `SearchIndexerInterface`/`SearchProviderInterface`,
+auto-registered) indexed vendor name+cuisine+menu and matched dishes ("taco"→Meedjims,
+"pizza"→4 pizzerias); `path` (`PathAlias` entity + `PathAliasResolver`) resolved
+`/meedjims`→the vendor. Good primitives. Two integration snags below.
+
+### 🔴 F-26 — no app hook to server-render `<head>` meta (SEO); middleware runs pre-controller
+The `seo` package builds meta HTML, but getting it into the SERVED `<head>` (required —
+scrapers don't run Vue `<Head>`) has no clean app seam:
+- Provider middleware (`HasMiddlewareInterface`) runs in the kernel's **authorization
+  pipeline**, whose inner handler returns an empty 200 (`HttpKernel.php:~363`) — it never
+  sees the rendered controller HTML, so it can't post-process the page.
+- The Inertia full-page renderer can't be overridden by an app provider: the kernel
+  resolves `InertiaFullPageRendererInterface` from the **first** provider that binds it, and
+  app providers are appended **after** package providers (PackageManifestCompiler ~L621), so
+  the package renderer always wins.
+- Worked around in `public/index.php` (the front controller — the one post-dispatch hook the
+  app owns) with `App\Http\SeoInjector`, which reads the vendor from SQLite (read-only PDO)
+  and rewrites `</head>`. Verified via curl: og:/twitter tags are in the raw HTML.
+- **Suggested fix:** a post-dispatch response filter or a per-request "head contributions"
+  bag the controller can populate, rendered by the root template.
+
+### 🟡 F-27 — app catch-all route loses to the SSR page fallback by default
+A `/{alias}` route registered by an app provider 404'd live (the SSR `render.page` fallback
+out-ranked it) even though it matched in isolation. Fixed with `->priority(5)` +
+`->requirement('alias','[a-z0-9][a-z0-9-]*')` so it beats the fallback without shadowing
+static paths (`/robots.txt` etc.). Routing precedence between app routes and framework
+fallbacks isn't documented.
+
+### 🟡 F-28 — `structured-import` is GFM single-entity, not multi-row CSV
+The package maps a 2-column GFM prompt→value table onto ONE entity's fields; it doesn't fit
+a multi-row CSV of many menu items. Built a small `App\Import\MenuCsvImporter` (CSV rows →
+MenuItem entities, resolving category→term) for the spec's `category,item,description,
+price_cents,available` import instead. A first-class tabular/CSV importer would help.

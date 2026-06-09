@@ -190,3 +190,26 @@ and `docker compose exec -u www-data wiisnin-app vendor/bin/waaseyaa db:init --s
       badged "to be confirmed" everywhere).
 - [ ] Future: SMS notification channel (Twilio) — interface stub only this session.
 - [ ] Optional CI: a `deploy-wiisnin.yml` workflow (needs `gh auth refresh -s workflow`).
+
+---
+
+## Redesign + framework features (Bright & friendly)
+
+Design system (`resources/css/app.css`, self-hosted fonts via `@fontsource`):
+- Palette: cream `#FFFDF8`, ink `#2B2622`, **orange `#E8612C`** (CTAs/wordmark), **teal `#1D9E75`** (accents/cart), tan/soft tints. All as CSS custom properties.
+- Type: **Nunito** (display/wordmark/headings), **Inter** (body) — bundled into `/build`, no runtime CDN.
+- Mobile-first cards, sticky cart bar, draft-price badges everywhere, skeletons, focus-visible, prefers-reduced-motion.
+- Cultural note: a light "Boozhoo!/Miigwech" warmth only; **floral/visual motifs need Russell's + community sign-off** before adding — left out deliberately.
+
+Location-first home (`Pages/Landing.vue` + `GET /api/vendors`):
+- Browser Geolocation → vendors across all four communities **sorted by distance** (`geo` `GeoDistance::haversine`, km), with a "Browse all" fallback when denied. Community is an optional filter chip row.
+- Dish/kitchen **search** via the `search` package (FTS5): "taco"→Meedjims, "pizza"→the pizzerias.
+
+Free framework features:
+- **path** — `/meedjims` (and `/<slug>` per vendor) resolve to the vendor page (PathAlias entities + `PathAliasResolver`; seeded aliases; route `priority(5)` + slug requirement).
+- **seo** — server-rendered OpenGraph/Twitter tags in the raw `<head>` via `App\Http\SeoInjector` in `public/index.php` (middleware can't — see FRICTION F-26). Verify: `curl https://wiisnin.ca/ | grep og:`.
+- **structured-import** — menu CSV import: `php bin/waaseyaa app:import-menu seed/meedjims-menu.sample.csv --vendor=meedjims-foodland` (columns category,item,description,price_cents,available). Sample at `seed/meedjims-menu.sample.csv`.
+
+Vendors (seeded, `app:seed`, idempotent): **Meedjims Foodland (Sagamok)** = the only live, orderable partner (real 9-item menu, draft prices). Sample "not yet a partner" listings: Back Home Bistro, Tony V's Pizza (Massey); Cortina, Topper's Pizza, Deluxe Drive-In (Espanola); North Channel Pizza, Dixie Lee Chicken (Spanish). Sample vendors are browsable but **not orderable** (`OrderService` rejects non-partners; `is_partner` flag).
+
+Out of scope (next phase, not built): i18n Anishinaabemowin layer; engagement reviews/ratings.

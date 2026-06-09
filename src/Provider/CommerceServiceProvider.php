@@ -9,7 +9,6 @@ use App\Domain\Catalog\Catalog;
 use App\Entity\MenuItem;
 use App\Entity\Order;
 use App\Entity\Vendor;
-use App\Http\SeoMetaMiddleware;
 use App\Import\MenuCsvImporter;
 use App\Notification\Channel\MercureChannel;
 use App\Notification\Channel\SmsChannel;
@@ -23,7 +22,6 @@ use Waaseyaa\CLI\CommandDefinition;
 use Waaseyaa\CLI\OptionDefinition;
 use Waaseyaa\CLI\OptionMode;
 use Waaseyaa\Entity\EntityTypeManager;
-use Waaseyaa\Foundation\ServiceProvider\Capability\HasMiddlewareInterface;
 use Waaseyaa\Foundation\ServiceProvider\Capability\HasNativeCommandsInterface;
 use Waaseyaa\Foundation\ServiceProvider\ServiceProvider;
 use Waaseyaa\Mail\MailerInterface;
@@ -38,7 +36,7 @@ use Waaseyaa\Queue\QueueInterface;
  * + SMS-stub channels), the path-alias lookup, the server-rendered SEO meta
  * middleware, and CLI commands (seed, self-check, menu CSV import).
  */
-final class CommerceServiceProvider extends ServiceProvider implements HasNativeCommandsInterface, HasMiddlewareInterface
+final class CommerceServiceProvider extends ServiceProvider implements HasNativeCommandsInterface
 {
     public function register(): void
     {
@@ -96,26 +94,6 @@ final class CommerceServiceProvider extends ServiceProvider implements HasNative
 
             return new NotificationDispatcher($queue, $channels);
         });
-    }
-
-    /**
-     * Server-rendered SEO/OpenGraph meta injected into the HTML <head> so social
-     * scrapers (which never run Vue) see rich share cards.
-     *
-     * @return list<\Waaseyaa\Foundation\Middleware\HttpMiddlewareInterface>
-     */
-    public function middleware(EntityTypeManager $entityTypeManager): array
-    {
-        $catalog = new Catalog(
-            $entityTypeManager->getRepository('vendor'),
-            $entityTypeManager->getRepository('menu_item'),
-            $entityTypeManager->getRepository('taxonomy_term'),
-        );
-        $aliases = $this->resolve(AliasLookupInterface::class);
-        \assert($aliases instanceof AliasLookupInterface);
-        $baseUrl = (string) (getenv('APP_URL') ?: ($this->config['app_url'] ?? ''));
-
-        return [new SeoMetaMiddleware($catalog, $aliases, $baseUrl)];
     }
 
     public function nativeCommands(): iterable

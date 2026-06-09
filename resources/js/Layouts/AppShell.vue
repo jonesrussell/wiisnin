@@ -9,8 +9,11 @@ defineProps({
 <template>
   <div class="wsn-app">
     <header class="wsn-header">
-      <Link href="/" class="wsn-brand">{{ app.name }}</Link>
-      <span class="wsn-sub">North Shore food ordering</span>
+      <Link href="/" class="wsn-brand">
+        {{ app.name }}
+        <small>wiisnin · let's eat · North Shore</small>
+      </Link>
+      <slot name="header-right" />
     </header>
 
     <main class="wsn-wrap">
@@ -18,9 +21,7 @@ defineProps({
     </main>
 
     <footer class="wsn-foot">
-      <slot name="footer">
-        Pay cash or e-transfer on pickup or delivery · order-taking only
-      </slot>
+      <slot name="footer">Pay cash or e-transfer on pickup or delivery · order-taking only</slot>
     </footer>
   </div>
 </template>

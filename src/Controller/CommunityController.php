@@ -29,7 +29,7 @@ final class CommunityController
                 'name' => $name ?? ucfirst($slug),
                 'slug' => $name !== null ? Communities::slug($name) : $slug,
             ],
-            'vendors' => $name !== null ? $this->catalog->vendorsInCommunity($name) : [],
+            'vendors' => $name !== null ? $this->catalog->vendorsNear(null, null, $name, null) : [],
         ]);
     }
 }

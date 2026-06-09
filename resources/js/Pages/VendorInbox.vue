@@ -13,6 +13,7 @@ const props = defineProps({
 
 const orders = ref([...props.orders])
 const connected = ref(false)
+const freshIds = ref(new Set())
 let es = null
 let poll = null
 
@@ -20,97 +21,65 @@ async function refetch() {
   if (!props.vendor) return
   try {
     const res = await fetch(`/api/vendor/${props.vendor.id}/orders`, { credentials: 'same-origin' })
-    if (res.ok) {
-      const data = await res.json()
-      orders.value = data.orders || []
-    }
-  } catch (e) { /* keep current list */ }
+    if (!res.ok) return
+    const data = await res.json()
+    const prev = new Set(orders.value.map((o) => o.id))
+    const next = data.orders || []
+    next.forEach((o) => { if (!prev.has(o.id)) markFresh(o.id) })
+    orders.value = next
+  } catch (e) { /* keep */ }
 }
-
+function markFresh(id) {
+  const s = new Set(freshIds.value); s.add(id); freshIds.value = s
+  setTimeout(() => { const n = new Set(freshIds.value); n.delete(id); freshIds.value = n }, 2600)
+}
 async function advance(order, to) {
   try {
     const res = await fetch(`/vendor/orders/${order.id}/transition`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
       body: JSON.stringify({ to }),
     })
     if (res.ok) await refetch()
   } catch (e) { /* ignore */ }
 }
-
-function startPolling() {
-  if (poll) return
-  poll = setInterval(refetch, 5000)
-}
+function startPolling() { if (!poll) poll = setInterval(refetch, 5000) }
 
 onMounted(() => {
   if (props.mercure.url && props.mercure.topic && 'EventSource' in window) {
-    const url = `${props.mercure.url}?topic=${encodeURIComponent(props.mercure.topic)}`
-    es = new EventSource(url)
+    es = new EventSource(`${props.mercure.url}?topic=${encodeURIComponent(props.mercure.topic)}`)
     es.onopen = () => { connected.value = true }
-    es.onmessage = () => { refetch() }
+    es.onmessage = () => refetch()
     es.onerror = () => { connected.value = false; startPolling() }
-  } else {
-    startPolling()
-  }
+  } else { startPolling() }
 })
-
-onUnmounted(() => {
-  if (es) es.close()
-  if (poll) clearInterval(poll)
-})
+onUnmounted(() => { if (es) es.close(); if (poll) clearInterval(poll) })
 </script>
 
 <template>
   <Head :title="`Order inbox — ${app.name}`" />
   <AppShell :app="app">
+    <template #header-right>
+      <span class="live" :class="{ on: connected }"><i></i>{{ connected ? 'Live' : 'Polling' }}</span>
+    </template>
+
     <div class="inbox-head">
-      <div>
-        <p class="wsn-eyebrow">Vendor inbox</p>
-        <h1 class="wsn-h1" style="margin:0">{{ vendor ? vendor.name : 'Orders' }}</h1>
-      </div>
-      <span class="live-dot" :class="{ on: connected }">
-        <i></i>{{ connected ? 'Live' : 'Polling' }}
-      </span>
+      <h2 class="h2" style="margin:8px 0">{{ vendor ? vendor.name + ' · orders' : 'Orders' }}</h2>
     </div>
-    <p class="wsn-lead">New orders appear here automatically — no refresh needed.</p>
+    <p class="lead">New orders appear here automatically — no refresh needed.</p>
 
-    <div v-if="orders.length === 0" class="empty">
-      No orders yet. Place one from the customer side and watch it land here.
-    </div>
+    <div v-if="orders.length === 0" class="empty">No orders yet. Place one from a phone and watch it land here.</div>
 
-    <article v-for="order in orders" :key="order.id" class="card order-card">
-      <div class="card-row">
-        <strong class="price">{{ order.reference }}</strong>
-        <span class="badge badge-status">{{ order.status }}</span>
+    <article v-for="order in orders" :key="order.id" class="ordcard" :class="{ fresh: freshIds.has(order.id) }">
+      <div class="top">
+        <h4>{{ order.reference }} · {{ order.customer_name || 'Guest' }}</h4>
+        <span class="tag" :class="order.status === 'completed' || order.status === 'cancelled' ? 'closed' : 'open'">{{ order.status }}</span>
       </div>
-      <p class="meta">
-        {{ order.customer_name || 'Guest' }} · {{ order.contact_phone }} ·
-        {{ order.fulfilment }} · pay {{ order.payment_method }}
-        <span class="muted">· {{ timeAgo(order.placed_at) }}</span>
-      </p>
-
-      <ul class="order-lines">
-        <li v-for="(l, i) in order.items" :key="i">
-          <span>{{ l.quantity }} × {{ l.name }}</span>
-          <span class="price">{{ money(l.line_total_cents) }}</span>
-        </li>
-      </ul>
-      <div class="card-row" style="border-top:1px solid var(--line);padding-top:.4rem">
-        <span class="muted" v-if="order.notes">“{{ order.notes }}”</span><span v-else></span>
-        <strong class="price">{{ money(order.total_cents) }} <span class="badge badge-draft">draft</span></strong>
-      </div>
-
-      <div class="row-actions" style="margin-top:.7rem;flex-wrap:wrap">
-        <button
-          v-for="t in order.transitions"
-          :key="t.id"
-          class="btn btn-sm"
-          :class="{ 'btn-primary': t.to !== 'cancelled' }"
-          @click="advance(order, t.to)"
-        >{{ t.label }}</button>
-        <span v-if="!order.transitions || order.transitions.length === 0" class="muted">— done —</span>
+      <p class="meta">{{ order.items.map(l => `${l.quantity}× ${l.name}`).join(' · ') }}</p>
+      <p class="meta">{{ order.fulfilment }} · {{ order.payment_method }}<span v-if="order.notes"> · “{{ order.notes }}”</span> · {{ timeAgo(order.placed_at) }}</p>
+      <div style="font-family:var(--font-display);font-weight:800;margin-top:6px">{{ money(order.total_cents) }} <span class="draft">draft</span></div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button v-for="t in order.transitions" :key="t.id" class="statusbtn" :class="{ alt: t.to === 'cancelled' }" @click="advance(order, t.to)">{{ t.label }}</button>
+        <span v-if="!order.transitions || order.transitions.length === 0" class="meta">— done —</span>
       </div>
     </article>
   </AppShell>

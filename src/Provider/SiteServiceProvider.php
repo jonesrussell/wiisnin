@@ -83,11 +83,14 @@ final class SiteServiceProvider extends ServiceProvider
             ->controller(fn (Request $r) => $this->vendorQueryController()->index($r))
             ->allowAll()->methods('GET')->build());
 
-        // Clean vendor aliases (path package), e.g. /meedjims. Lowest priority so
-        // it never shadows the concrete routes above.
+        // Clean vendor aliases (path package), e.g. /meedjims. Constrained to a
+        // plain slug (no dots/slashes) so it can't shadow /robots.txt etc., and
+        // given a priority that beats the SSR page fallback but stays below the
+        // concrete /vendor inbox route above.
         $router->addRoute('alias', RouteBuilder::create('/{alias}')
             ->controller(fn (Request $r, string $alias) => $this->pathAliasController()->show($alias))
-            ->allowAll()->methods('GET')->priority(-10)->build());
+            ->requirement('alias', '[a-z0-9][a-z0-9-]*')
+            ->allowAll()->methods('GET')->priority(5)->build());
     }
 
     // --- lazy controller factories (request time) ----------------------------
