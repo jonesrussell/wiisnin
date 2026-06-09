@@ -6,6 +6,8 @@ namespace App\Provider;
 
 use App\Access\VendorStaffDirectory;
 use App\Domain\Catalog\Catalog;
+use App\Domain\Claim\ClaimService;
+use App\Domain\Demand\DemandService;
 use App\Entity\MenuItem;
 use App\Entity\Order;
 use App\Entity\Vendor;
@@ -232,6 +234,67 @@ final class CommerceServiceProvider extends ServiceProvider implements HasNative
                 $io->writeln($ok ? 'SELFCHECK OK' : 'SELFCHECK FAILED');
 
                 return $ok ? 0 : 1;
+            },
+        );
+
+        yield new CommandDefinition(
+            name: 'app:demand',
+            description: 'List non-partner listings ranked by "I\'d order here" demand votes — Russell\'s outreach priority list.',
+            handler: function (CliIO $io): int {
+                $etm = $this->resolve(EntityTypeManager::class);
+                if (!$etm instanceof EntityTypeManager) {
+                    $io->error('Demand requires a booted kernel (EntityTypeManager).');
+                    return 1;
+                }
+                $counts = new DemandService($etm->getRepository('demand_vote'))->counts();
+
+                $rows = [];
+                foreach ($etm->getRepository('vendor')->findBy([]) as $vendor) {
+                    if (!$vendor instanceof Vendor || $vendor->isPartner()) {
+                        continue;
+                    }
+                    $rows[] = ['name' => $vendor->getName(), 'votes' => $counts[$vendor->getSlug()] ?? 0];
+                }
+                usort($rows, static fn (array $a, array $b): int => $b['votes'] <=> $a['votes'] ?: strcmp($a['name'], $b['name']));
+
+                $io->writeln('Demand for ordering (most-wanted first):');
+                if ($rows === []) {
+                    $io->writeln('  (no listings)');
+                }
+                foreach ($rows as $row) {
+                    $io->writeln(sprintf('  %4d  %s', $row['votes'], $row['name']));
+                }
+
+                return 0;
+            },
+        );
+
+        yield new CommandDefinition(
+            name: 'app:claims',
+            description: 'List owner "claim this listing" requests (newest first).',
+            handler: function (CliIO $io): int {
+                $etm = $this->resolve(EntityTypeManager::class);
+                if (!$etm instanceof EntityTypeManager) {
+                    $io->error('Claims requires a booted kernel (EntityTypeManager).');
+                    return 1;
+                }
+                $claims = new ClaimService($etm->getRepository('claim_request'))->listAll();
+
+                if ($claims === []) {
+                    $io->writeln('No claim requests yet.');
+                    return 0;
+                }
+                $io->writeln(sprintf('%d claim request(s):', count($claims)));
+                foreach ($claims as $c) {
+                    $when = $c['created_at'] > 0 ? date('Y-m-d', (int) $c['created_at']) : '—';
+                    $contact = trim(($c['phone'] !== '' ? $c['phone'] : '') . ' ' . ($c['email'] !== '' ? $c['email'] : ''));
+                    $io->writeln(sprintf('  [%s] %s — %s (%s) · %s', $c['status'], $c['vendor_name'], $c['owner_name'], $contact !== '' ? $contact : 'no contact', $when));
+                    if ($c['note'] !== '') {
+                        $io->writeln('        note: ' . $c['note']);
+                    }
+                }
+
+                return 0;
             },
         );
     }

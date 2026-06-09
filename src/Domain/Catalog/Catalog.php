@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog;
 
+use App\Domain\Demand\DemandService;
 use App\Domain\Review\ReviewService;
 use App\Entity\MenuItem;
 use App\Entity\Vendor;
+use App\Support\OpenHours;
 use Waaseyaa\Entity\Repository\EntityRepositoryInterface;
 use Waaseyaa\Geo\GeoDistance;
 
@@ -37,12 +39,25 @@ final class Catalog
     /** @var array<int, ?string> tid => term name cache */
     private array $termNames = [];
 
+    /** @var \Closure(): int */
+    private \Closure $clock;
+
     public function __construct(
         private readonly EntityRepositoryInterface $vendors,
         private readonly EntityRepositoryInterface $menuItems,
         private readonly EntityRepositoryInterface $terms,
         private readonly ?ReviewService $reviews = null,
-    ) {}
+        private readonly ?DemandService $demand = null,
+        ?\Closure $clock = null,
+    ) {
+        $this->clock = $clock ?? static fn (): int => time();
+    }
+
+    /** Demand-vote count for a listing (0 when demand isn't wired). */
+    public function demandFor(string $slug): int
+    {
+        return $this->demand?->countFor($slug) ?? 0;
+    }
 
     /**
      * Visible reviews for a vendor (newest first); [] when reviews aren't wired.
@@ -117,19 +132,59 @@ final class Catalog
      */
     public function vendorCard(Vendor $vendor, ?float $distanceKm = null, string $locale = 'en'): array
     {
+        $slug = (string) $vendor->getSlug();
+
         return [
             'id' => (int) $vendor->id(),
             'name' => $this->localized($vendor, 'name', $locale),
-            'slug' => $vendor->getSlug(),
+            'slug' => $slug,
             'community' => $this->termName($vendor->getCommunityTermId()),
             'cuisine' => $vendor->getCuisine(),
             'description' => $this->localized($vendor, 'description', $locale),
             'is_open' => $vendor->isOpen(),
+            'open' => $this->openStatus($vendor),
             'is_partner' => $vendor->isPartner(),
+            'contact_phone' => $vendor->getContactPhone(),
+            'address' => $vendor->getAddress(),
+            'maps_url' => $this->mapsUrl($vendor),
+            'hours' => $vendor->getHours(),
             'distance_km' => $distanceKm === null ? null : round($distanceKm, $distanceKm < 10 ? 1 : 0),
             'rating' => $this->reviews?->summary((int) $vendor->id()) ?? ['average' => null, 'count' => 0],
-            'image' => self::VENDOR_PHOTOS[(string) $vendor->getSlug()]['hero'] ?? null,
+            'demand' => $this->demandFor($slug),
+            'image' => self::VENDOR_PHOTOS[$slug]['hero'] ?? null,
         ];
+    }
+
+    /**
+     * Open/closed: computed from structured hours when known, else the partner's
+     * operational flag, else null (unknown — UI shows neither; never fake it).
+     */
+    private function openStatus(Vendor $vendor): ?bool
+    {
+        $hoursJson = $vendor->getHoursJson();
+        if ($hoursJson !== '') {
+            return OpenHours::isOpen($hoursJson, ($this->clock)());
+        }
+        if ($vendor->isPartner()) {
+            return $vendor->isOpen();
+        }
+
+        return null;
+    }
+
+    /** Google Maps directions URL from the street address, else coords, else null. */
+    private function mapsUrl(Vendor $vendor): ?string
+    {
+        $address = trim($vendor->getAddress());
+        if ($address !== '') {
+            $dest = $vendor->getName() . ', ' . $address;
+        } elseif ($vendor->getLatitude() !== null && $vendor->getLongitude() !== null) {
+            $dest = $vendor->getLatitude() . ',' . $vendor->getLongitude();
+        } else {
+            return null;
+        }
+
+        return 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($dest);
     }
 
     /** Localized field value: the *_oj field for Nishnaabemwin when non-empty, else English. */

@@ -360,3 +360,19 @@ endpoint (form-based) was protected by the middleware, the review endpoint silen
   helper / route option (`->csrf(true)`) so an app can opt a JSON route back into protection
   without re-implementing `hasValidToken()`. Today the middleware's `hasValidToken()` is
   private, so the controller has to duplicate it.
+  - **Update (Phase 3):** extracted the validation into an app-side `App\Http\Csrf::valid()`
+    helper now shared by the review, claim, and demand endpoints (ReviewController delegates to
+    it too), so the duplication is gone app-side — but the upstream gap stands.
+
+### 🔵 F-32 — mail has no transport configured; one-off email is silent best-effort
+`MailServiceProvider` reads `config['mail']`, which Wiisnin doesn't set, so it falls back to
+`LocalTransport` (logs to a file, no SMTP). So the owner-claim "email Russell" can't actually
+deliver in prod without a transport. Resolving `MailerInterface` works (no crash), and
+`NotificationDispatcher`/our send is wrapped in try/catch, so a missing transport never breaks the
+request — but the email silently no-ops.
+- **Fix applied:** the durable record is the stored `claim_request` entity (the email is
+  best-effort on top), and Russell reads claims reliably via `vendor/bin/waaseyaa app:claims`
+  (and demand via `app:demand`). Wire `MAIL_TRANSPORT=sendgrid` + key (or SMTP) to enable real
+  delivery later.
+- **Suggested upstream:** ship a default mail config stub + a louder boot warning when a
+  state-changing notification targets the no-op LocalTransport in production.

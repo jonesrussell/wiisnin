@@ -278,3 +278,35 @@ Vendors (seeded, `app:seed`, idempotent): **Meedjims Foodland (Sagamok)** = the 
 Out of scope (next phase, not built): real Nishnaabemwin translations (community deliverable —
 seam left above); decorative Anishinaabe floral motifs (await Russell + community sign-off).
 (Meedjims real photos — now wired in, see TODO above.)
+
+---
+
+## Phase 3 — verified directory + info MVP
+
+**Verified seed** (`App\Support\VendorData`, source `AREA-VENDORS-VERIFIED.md`): **21 vendors
+across 8 towns**. Meedjims (Sagamok) is the only ordering partner (keeps menu/photos/reviews/
+ordering); the other 20 are directory/info listings (no menu/ordering). Excluded the 3 flagged
+unconfirmed/closed (Back Home Bistro, Tony V's, Deluxe Drive-In) **and** Jones General Store
+(a shop, not an eatery). Communities (`App\Support\Communities`, chips + `/c/{slug}`): Sagamok,
+Massey, Walford, Spanish (incl. Cutler), Webbwood, Espanola, McKerrow, Nairn Centre. Coordinates
+= town centroids + per-vendor jitter (APPROXIMATE — refine with real geocoding). Seed stays
+idempotent-by-slug; prod DB is reset+reseeded on the verified-data change.
+
+**Info listings useful** (all vendors, card + detail): tap-to-**call** (`tel:`), **directions**
+(Google Maps URL from address→coords), cuisine + town, and **open/closed computed from hours**
+where hours exist (`App\Support\OpenHours`, America/Toronto). Hours exist for only Tim Hortons +
+Roger Rabbit's; everyone else shows neither — **we never fake "Open now"**. Non-partner detail is
+an info page (no menu).
+
+**Conversion loop:** the old "Sample listing" badge is now **"Ordering coming soon"** (neutral).
+- **Claim** (`claim_request` entity + `ClaimService` + `ClaimController`): POST `/vendor/{slug}/claim`
+  (CSRF), stores a durable ClaimRequest + best-effort emails Russell (jonesrussell42@gmail.com via
+  the mail channel — see FRICTION F-32). Read via `vendor/bin/waaseyaa app:claims`.
+- **Demand** (`demand_vote` entity + `DemandService` + `DemandController`): POST `/vendor/{slug}/demand`
+  (CSRF), one vote per device (localStorage `wsn_device` + server dedupe on vendor_slug+device_id).
+  Count shows on card + detail. Ranked for outreach via `vendor/bin/waaseyaa app:demand`.
+- Both POSTs reuse the shared `App\Http\Csrf` helper (X-XSRF-TOKEN); partners are rejected (422).
+- Footer: "Suggest a correction / add a place" → mailto jonesrussell42@gmail.com; trust note added.
+
+Tests: `OpenHoursTest`, `VerifiedSeedDataTest` (counts/exclusions), `DemandServiceTest`,
+`DemandRouteCsrfTest`, `ClaimRouteCsrfTest`.

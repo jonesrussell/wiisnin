@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace App\Support;
 
 /**
- * The four North Shore communities Wiisnin serves.
+ * The North Shore communities Wiisnin serves (verified pass, 2026-06-09).
  *
- * This is the canonical list. Phase 1 mirrors these into a `community` taxonomy
- * vocabulary (see the taxonomy seed); keep the names here in sync with the terms
- * so the landing page and the vendor/order data agree.
+ * This is the canonical list. The seed mirrors these into a `community` taxonomy
+ * vocabulary; keep the names here in sync with the terms so the landing page and
+ * the vendor data agree. Centroids are APPROXIMATE town centres used for the
+ * distance sort + a per-vendor jitter — refine with real geocoded coordinates
+ * when available. Cutler is folded into Spanish.
  */
 final class Communities
 {
-    /** @var list<string> Canonical community names, in display order. */
-    public const NAMES = ['Massey', 'Sagamok', 'Espanola', 'Spanish'];
+    /** @var list<string> Canonical community names, in display order (home first). */
+    public const NAMES = ['Sagamok', 'Massey', 'Walford', 'Spanish', 'Webbwood', 'Espanola', 'McKerrow', 'Nairn Centre'];
 
     /**
      * Approximate community centroids [lat, lng] for the distance sort (geo).
@@ -22,10 +24,14 @@ final class Communities
      * @var array<string, array{0: float, 1: float}>
      */
     public const CENTROIDS = [
-        'Massey' => [46.2142, -82.0833],
-        'Sagamok' => [46.1310, -82.5730],
-        'Espanola' => [46.2583, -81.7680],
-        'Spanish' => [46.1930, -82.3420],
+        'Sagamok' => [46.21, -82.50],
+        'Massey' => [46.21, -82.08],
+        'Walford' => [46.18, -82.27],
+        'Spanish' => [46.19, -82.34],
+        'Webbwood' => [46.27, -81.89],
+        'Espanola' => [46.25, -81.77],
+        'McKerrow' => [46.27, -81.83],
+        'Nairn Centre' => [46.34, -81.58],
     ];
 
     /** @return array{0: float, 1: float}|null */
@@ -36,7 +42,7 @@ final class Communities
 
     public static function slug(string $name): string
     {
-        return strtolower($name);
+        return str_replace(' ', '-', strtolower($name));
     }
 
     /** Resolve a URL slug back to a canonical name, or null if unknown. */
@@ -58,17 +64,21 @@ final class Communities
     public static function cards(): array
     {
         $blurbs = [
-            'Massey' => 'Township on the Spanish River, gateway to the North Shore.',
             'Sagamok' => 'Sagamok Anishnawbek — home of our first vendor, Meedjims Foodland.',
+            'Massey' => 'Township on the Spanish River, gateway to the North Shore.',
+            'Walford' => 'Small community west of Massey on Highway 17.',
+            'Spanish' => 'Where the Spanish River meets the North Channel (incl. Cutler).',
+            'Webbwood' => 'Village on Highway 17 east of Massey.',
             'Espanola' => 'The hub town serving the wider North Shore region.',
-            'Spanish' => 'Historic community where the Spanish River meets the North Channel.',
+            'McKerrow' => 'Highway 17 stop between Espanola and Sudbury.',
+            'Nairn Centre' => 'Township toward Sudbury on Highway 17.',
         ];
 
         return array_map(
             static fn (string $name): array => [
                 'name' => $name,
                 'slug' => self::slug($name),
-                'blurb' => $blurbs[$name],
+                'blurb' => $blurbs[$name] ?? '',
             ],
             self::NAMES,
         );

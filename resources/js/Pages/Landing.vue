@@ -1,7 +1,8 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
 import AppShell from '../Layouts/AppShell.vue'
+import VendorCard from '../components/VendorCard.vue'
 import { useI18n } from '../i18n.js'
 
 const props = defineProps({
@@ -9,8 +10,8 @@ const props = defineProps({
   communities: { type: Array, default: () => [] },
 })
 
-// Card thumbnail tints so the list looks warm without photos yet.
-const TINTS = ['#E8612C', '#1D9E75', '#3C6E89', '#C46A2B', '#15795A', '#E8612C', '#1D9E75', '#3C6E89']
+// Card thumbnail tints so listings look warm without photos.
+const TINTS = ['#E8612C', '#1D9E75', '#3C6E89', '#C46A2B', '#15795A', '#C94E1E', '#1D9E75', '#3C6E89']
 
 const { locale } = useI18n()
 const located = ref(false)        // has the user shared location / chosen browse?
@@ -20,12 +21,12 @@ const coords = ref(null)          // { lat, lng } | null
 const community = ref('All')
 const search = ref('')
 const vendors = ref([])
-const sampleNote = ref('')
 let searchTimer = null
 
-const locTitle = computed(() => coords.value ? "Kitchens near you" : 'All communities')
+const locTitle = computed(() => coords.value ? 'Kitchens near you' : 'All communities')
 const locSub = computed(() => coords.value ? 'Closest to you first' : 'Location off · browse everything')
-const filters = ['All', 'Sagamok', 'Massey', 'Espanola', 'Spanish']
+// Town chips come from the served-communities list (canonical 8 towns).
+const filters = computed(() => ['All', ...props.communities.map((c) => c.name)])
 
 async function load() {
   loading.value = true
@@ -53,7 +54,7 @@ function useLocation() {
   )
 }
 function browseAll() { located.value = true; coords.value = null; load() }
-function changeLocation() { located.value = false; vendors.value = []; sampleNote.value = '' }
+function changeLocation() { located.value = false; vendors.value = [] }
 
 function onSearch() {
   clearTimeout(searchTimer)
@@ -62,18 +63,7 @@ function onSearch() {
 function setCommunity(c) { community.value = c; load() }
 watch(locale, () => { if (located.value) load() })
 
-function openVendor(v) {
-  if (v.is_partner) { router.visit('/vendor/' + v.slug) }
-  else { sampleNote.value = `${v.name} is a sample listing — this neighbour isn't a Wiisnin partner yet. Meedjims Foodland is the live kitchen to try.` }
-}
 function tint(i) { return TINTS[i % TINTS.length] }
-function distLabel(v) {
-  const d = v.distance_km
-  if (d == null) return ''
-  if (d < 1) return 'nearby'
-  return (d < 10 ? d : Math.round(d)) + ' km'
-}
-function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice(0, r) + '☆☆☆☆☆'.slice(0, 5 - r) }
 </script>
 
 <template>
@@ -88,7 +78,7 @@ function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice
       <div class="perm">
         <div class="ring" aria-hidden="true">◎</div>
         <h2>Find food near you</h2>
-        <p>Boozhoo! Share your location and Wiisnin shows the kitchens closest to you across Sagamok, Massey, Espanola and Spanish — closest first.</p>
+        <p>Boozhoo! Share your location and Wiisnin shows the kitchens closest to you across the North Shore — Sagamok, Massey, Espanola and the towns between — closest first.</p>
         <button class="cta" style="width:100%;margin:0 0 10px" @click="useLocation">Use my location</button>
         <button class="back" style="font-size:15px" @click="browseAll">Browse all communities</button>
       </div>
@@ -114,35 +104,22 @@ function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice
         <button v-for="c in filters" :key="c" class="chip" :class="{ act: community === c }" @click="setCommunity(c)">{{ c }}</button>
       </div>
 
-      <p v-if="sampleNote" class="samplebar">{{ sampleNote }}</p>
-
       <div class="sech">{{ search.trim() ? `Results for "${search.trim()}"` : (community === 'All' ? (coords ? 'Closest to you' : 'All kitchens') : ('In ' + community)) }}</div>
 
       <template v-if="loading">
         <div class="vgrid">
-          <div v-for="n in 3" :key="n" class="vcard" style="cursor:default">
-            <div class="vthumb skel"></div>
-            <div style="flex:1"><div class="skel" style="height:14px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:80%"></div></div>
+          <div v-for="n in 3" :key="n" class="vcard">
+            <div class="vcard-main" style="cursor:default">
+              <div class="vthumb skel"></div>
+              <div style="flex:1"><div class="skel" style="height:14px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:11px;width:80%"></div></div>
+            </div>
           </div>
         </div>
       </template>
 
       <template v-else>
         <div class="vgrid">
-        <button v-for="(v, i) in vendors" :key="v.id" class="vcard" :class="{ sample: !v.is_partner }" @click="openVendor(v)">
-          <div class="vthumb" :style="{ background: tint(i) }">
-            <span v-if="distLabel(v)" class="distbadge">{{ distLabel(v) }}</span>
-          </div>
-          <div style="flex:1">
-            <h3>{{ v.name }}</h3>
-            <p>{{ v.community }} · {{ v.cuisine || v.description }}</p>
-            <div class="tags">
-              <span class="tag" :class="v.is_open ? 'open' : 'closed'">{{ v.is_open ? 'Open now' : 'Closed' }}</span>
-              <span class="tag" :class="v.is_partner ? 'live' : 'sample'">{{ v.is_partner ? 'Order now' : 'Sample listing' }}</span>
-              <span v-if="v.rating && v.rating.count > 0" class="tag rate"><span class="stars">{{ stars(v.rating.average) }}</span> {{ v.rating.average }} ({{ v.rating.count }})</span>
-            </div>
-          </div>
-        </button>
+          <VendorCard v-for="(v, i) in vendors" :key="v.id" :v="v" :tint="tint(i)" />
         </div>
 
         <div v-if="vendors.length === 0" class="empty">

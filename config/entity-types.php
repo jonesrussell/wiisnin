@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Entity\ClaimRequest;
+use App\Entity\DemandVote;
 use App\Entity\GroupMembership;
 use App\Entity\MenuItem;
 use App\Entity\Order;
@@ -55,5 +57,17 @@ return [
         label: 'Review',
         class: Review::class,
         keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'author_name'],
+    ),
+    new EntityType(
+        id: 'claim_request',
+        label: 'Claim request',
+        class: ClaimRequest::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'owner_name'],
+    ),
+    new EntityType(
+        id: 'demand_vote',
+        label: 'Demand vote',
+        class: DemandVote::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'vendor_slug'],
     ),
 ];

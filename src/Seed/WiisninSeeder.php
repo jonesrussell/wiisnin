@@ -10,6 +10,7 @@ use App\Entity\MenuItem;
 use App\Entity\Vendor;
 use App\Search\VendorSearchDocument;
 use App\Support\Communities;
+use App\Support\VendorData;
 use Waaseyaa\CLI\CliIO;
 use Waaseyaa\Entity\Repository\EntityRepositoryInterface;
 use Waaseyaa\Path\PathAlias;
@@ -17,14 +18,15 @@ use Waaseyaa\Search\SearchIndexerInterface;
 use Waaseyaa\Taxonomy\Term;
 
 /**
- * Idempotent seed of demo data:
- *   - community + menu_category taxonomy terms,
+ * Idempotent seed of VERIFIED data (AREA-VENDORS-VERIFIED.md):
+ *   - community taxonomy terms for the 8 served towns + menu_category terms,
  *   - Meedjims Foodland (Sagamok) — the ONE live, orderable partner, real 9-item menu,
- *   - area "Sample listing — not yet a partner" vendors (per AREA-VENDORS.md),
+ *   - ~20 verified directory/info listings across the North Shore (no menu/ordering;
+ *     "ordering coming soon / claim this listing"),
  *   - a clean path alias per vendor (/meedjims etc.),
  *   - the FTS5 search index (vendor name + cuisine + community + menu item names).
  *
- * ALL prices are DRAFT and badged "to be confirmed" in the UI. Sample vendors are
+ * Meedjims prices are DRAFT and badged "to be confirmed". Info listings are
  * browsable but not orderable (OrderService rejects non-partners).
  */
 final class WiisninSeeder
@@ -51,8 +53,9 @@ final class WiisninSeeder
         }
         $io->writeln('Communities + menu categories ensured.');
 
-        // 2. Vendor specs. Meedjims = live partner; the rest = sample listings.
-        $specs = $this->vendorSpecs();
+        // 2. Verified vendor data. Meedjims = the live partner; the rest are
+        // directory/info listings ("ordering coming soon"). See VendorData.
+        $specs = VendorData::vendors();
         $created = 0;
         foreach ($specs as $spec) {
             if ($this->vendors->findBy(['slug' => $spec['slug']], null, 1) !== []) {
@@ -77,8 +80,10 @@ final class WiisninSeeder
                 'community_tid' => $communityTids[$spec['community']] ?? null,
                 'cuisine' => $spec['cuisine'],
                 'description' => $spec['description'],
-                'hours' => $spec['partner'] ? 'Hours TBD — confirm with the family.' : '',
-                'is_open' => $spec['open'] ? 1 : 0,
+                'hours' => $spec['hours'],
+                'hours_json' => $spec['hours_json'],
+                'address' => $spec['address'],
+                'is_open' => 1,
                 'is_partner' => $spec['partner'] ? 1 : 0,
                 'owner_group_id' => $groupId,
                 'contact_phone' => $spec['phone'],
@@ -100,7 +105,8 @@ final class WiisninSeeder
                 ]));
             }
 
-            $this->ensureAlias('/' . $spec['alias'], '/vendor/' . $spec['slug']);
+            $alias = $spec['slug'] === 'meedjims-foodland' ? 'meedjims' : $spec['slug'];
+            $this->ensureAlias('/' . $alias, '/vendor/' . $spec['slug']);
             $this->indexVendor($vendor, $spec);
             $created++;
         }
@@ -111,69 +117,6 @@ final class WiisninSeeder
         $io->writeln('Roles: ' . implode(', ', array_keys(CommerceAccess::roles())));
 
         return 0;
-    }
-
-    /**
-     * @return list<array{slug:string,name:string,community:string,cuisine:string,description:string,partner:bool,open:bool,phone:string,alias:string,jitter:array{0:float,1:float},menu:list<array{0:string,1:string,2:int}>}>
-     */
-    private function vendorSpecs(): array
-    {
-        return [
-            [
-                'slug' => 'meedjims-foodland', 'name' => 'Meedjims Foodland', 'community' => 'Sagamok',
-                'cuisine' => 'Native cuisine & grill', 'description' => 'Family-owned in Sagamok First Nation since 1989, recently reopened.',
-                'partner' => true, 'open' => true, 'phone' => '705-865-1537', 'alias' => 'meedjims', 'jitter' => [0.0, 0.0],
-                'menu' => [
-                    ['Native cuisine', 'Scone', 400], ['Native cuisine', 'Indian taco', 1400],
-                    ['Native cuisine', 'Scone dog', 900], ['Native cuisine', 'Scone & bologna', 800],
-                    ['Grill', 'Hamburger', 800], ['Grill', 'French fries', 500],
-                    ['Grill', 'Poutine', 1000], ['Grill', 'Cheese fries', 900],
-                    ['Daily specials', 'Corn soup', 800],
-                ],
-            ],
-            [
-                'slug' => 'back-home-bistro', 'name' => 'Back Home Bistro', 'community' => 'Massey',
-                'cuisine' => 'Homemade comfort food', 'description' => 'Hearty homemade comfort food, curbside pickup.',
-                'partner' => false, 'open' => true, 'phone' => '', 'alias' => 'back-home-bistro', 'jitter' => [0.004, 0.004],
-                'menu' => [['Menu', 'Hot turkey sandwich', 1200], ['Menu', 'Homemade soup', 600], ['Menu', "Shepherd's pie", 1300], ['Menu', 'Butter tart', 350]],
-            ],
-            [
-                'slug' => 'tony-vs-pizza', 'name' => "Tony V's Pizza", 'community' => 'Massey',
-                'cuisine' => 'Pizza & burgers', 'description' => 'Pizza and burgers in Massey.',
-                'partner' => false, 'open' => false, 'phone' => '', 'alias' => 'tony-vs-pizza', 'jitter' => [-0.005, 0.003],
-                'menu' => [['Menu', 'Pepperoni pizza', 1600], ['Menu', 'Cheeseburger', 900], ['Menu', 'Garlic bread', 500]],
-            ],
-            [
-                'slug' => 'cortina-restaurant', 'name' => 'Cortina Restaurant', 'community' => 'Espanola',
-                'cuisine' => 'Italian & pizza', 'description' => 'Long-running family Italian + pizza.',
-                'partner' => false, 'open' => true, 'phone' => '', 'alias' => 'cortina-restaurant', 'jitter' => [0.003, -0.004],
-                'menu' => [['Menu', 'Spaghetti & meatballs', 1500], ['Menu', 'Margherita pizza', 1500], ['Menu', 'Caesar salad', 800]],
-            ],
-            [
-                'slug' => 'toppers-pizza', 'name' => "Topper's Pizza", 'community' => 'Espanola',
-                'cuisine' => 'Pizza', 'description' => 'The uptown pizza go-to.',
-                'partner' => false, 'open' => true, 'phone' => '', 'alias' => 'toppers-pizza', 'jitter' => [-0.003, -0.002],
-                'menu' => [['Menu', 'Large pepperoni', 1900], ['Menu', 'Chicken wings', 1300], ['Menu', 'Cheese sticks', 800]],
-            ],
-            [
-                'slug' => 'deluxe-drive-in', 'name' => 'Deluxe Drive-In', 'community' => 'Espanola',
-                'cuisine' => 'Burgers & fries', 'description' => 'Classic fast food, burgers and fries.',
-                'partner' => false, 'open' => false, 'phone' => '', 'alias' => 'deluxe-drive-in', 'jitter' => [0.005, 0.002],
-                'menu' => [['Menu', 'Burger & fries', 900], ['Menu', 'Onion rings', 500], ['Menu', 'Milkshake', 450]],
-            ],
-            [
-                'slug' => 'north-channel-pizza', 'name' => 'North Channel Pizza', 'community' => 'Spanish',
-                'cuisine' => 'Homemade pizza, takeout', 'description' => 'Fresh-daily dough, takeout pizza, wings, lasagna.',
-                'partner' => false, 'open' => true, 'phone' => '', 'alias' => 'north-channel-pizza', 'jitter' => [0.003, 0.004],
-                'menu' => [['Menu', 'Specialty pizza', 1800], ['Menu', 'Lasagna', 1400], ['Menu', 'Wings', 1300]],
-            ],
-            [
-                'slug' => 'dixie-lee-chicken', 'name' => 'Dixie Lee Chicken', 'community' => 'Spanish',
-                'cuisine' => 'Fried chicken', 'description' => 'Fried chicken and Canadian diner fare.',
-                'partner' => false, 'open' => true, 'phone' => '', 'alias' => 'dixie-lee-chicken', 'jitter' => [-0.004, 0.003],
-                'menu' => [['Menu', '2pc chicken dinner', 1200], ['Menu', 'Popcorn chicken', 900], ['Menu', 'Coleslaw', 300]],
-            ],
-        ];
     }
 
     /**

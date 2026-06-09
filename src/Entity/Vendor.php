@@ -42,8 +42,14 @@ final class Vendor extends ContentEntityBase implements NotifiableInterface
     #[Field(type: 'text', label: 'Description', stored: FieldStorage::Data)]
     public string $description = '';
 
-    #[Field(type: 'text', label: 'Hours', description: 'Free-text opening hours.', stored: FieldStorage::Data)]
+    #[Field(type: 'text', label: 'Hours', description: 'Human-readable opening hours for display.', stored: FieldStorage::Data)]
     public string $hours = '';
+
+    #[Field(type: 'text', label: 'Hours (structured)', description: 'JSON {mon:[[\"HH:MM\",\"HH:MM\"]],...} for computing open/closed. Empty = unknown (never fake "Open now").', stored: FieldStorage::Data)]
+    public string $hours_json = '';
+
+    #[Field(label: 'Address', description: 'Street address for directions/maps.', stored: FieldStorage::Data)]
+    public string $address = '';
 
     #[Field(type: 'boolean', label: 'Open', description: 'Whether the vendor is currently accepting orders.', default: 1, stored: FieldStorage::Data)]
     public bool $is_open = true;
@@ -108,6 +114,21 @@ final class Vendor extends ContentEntityBase implements NotifiableInterface
     public function getContactPhone(): string
     {
         return (string) ($this->get('contact_phone') ?? '');
+    }
+
+    public function getAddress(): string
+    {
+        return (string) ($this->get('address') ?? '');
+    }
+
+    public function getHours(): string
+    {
+        return (string) ($this->get('hours') ?? '');
+    }
+
+    public function getHoursJson(): string
+    {
+        return (string) ($this->get('hours_json') ?? '');
     }
 
     public function getContactEmail(): string

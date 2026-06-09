@@ -1,6 +1,7 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
 import AppShell from '../Layouts/AppShell.vue'
+import VendorCard from '../components/VendorCard.vue'
 
 defineProps({
   app: { type: Object, required: true },
@@ -9,9 +10,7 @@ defineProps({
 })
 
 const TINTS = ['#E8612C', '#1D9E75', '#3C6E89', '#C46A2B']
-function open(v) {
-  if (v.is_partner) router.visit('/vendor/' + v.slug)
-}
+function tint(i) { return TINTS[i % TINTS.length] }
 </script>
 
 <template>
@@ -23,17 +22,7 @@ function open(v) {
     <p class="lead">Kitchens serving {{ community.name }}.</p>
 
     <div class="vgrid">
-      <button v-for="(v, i) in vendors" :key="v.id" class="vcard" :class="{ sample: !v.is_partner }" @click="open(v)">
-        <div class="vthumb" :style="{ background: TINTS[i % TINTS.length] }"></div>
-        <div style="flex:1">
-          <h3>{{ v.name }}</h3>
-          <p>{{ v.cuisine || v.description }}</p>
-          <div class="tags">
-            <span class="tag" :class="v.is_open ? 'open' : 'closed'">{{ v.is_open ? 'Open now' : 'Closed' }}</span>
-            <span class="tag" :class="v.is_partner ? 'live' : 'sample'">{{ v.is_partner ? 'Order now' : 'Sample listing' }}</span>
-          </div>
-        </div>
-      </button>
+      <VendorCard v-for="(v, i) in vendors" :key="v.id" :v="v" :tint="tint(i)" />
     </div>
 
     <div v-if="vendors.length === 0" class="empty">No kitchens here yet in {{ community.name }}.</div>

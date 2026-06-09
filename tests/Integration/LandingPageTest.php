@@ -38,7 +38,7 @@ final class LandingPageTest extends TestCase
     }
 
     #[Test]
-    public function landing_renders_the_four_north_shore_communities(): void
+    public function landing_renders_the_served_north_shore_communities(): void
     {
         $result = (new LandingController())->index();
 
@@ -48,7 +48,10 @@ final class LandingPageTest extends TestCase
         $this->assertSame('Landing', $page['component']);
 
         $names = array_column($page['props']['communities'], 'name');
-        $this->assertSame(['Massey', 'Sagamok', 'Espanola', 'Spanish'], $names);
+        $this->assertSame(
+            ['Sagamok', 'Massey', 'Walford', 'Spanish', 'Webbwood', 'Espanola', 'McKerrow', 'Nairn Centre'],
+            $names,
+        );
 
         // App identity travels with every page so the Vue shell can render it.
         $this->assertSame('Wiisnin', $page['props']['app']['name'] ?? null);

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Provider;
 
+use App\Controller\ClaimController;
 use App\Controller\CommunityController;
+use App\Controller\DemandController;
 use App\Controller\LandingController;
 use App\Controller\OrderController;
 use App\Controller\PathAliasController;
@@ -13,6 +15,8 @@ use App\Controller\VendorController;
 use App\Controller\VendorInboxController;
 use App\Controller\VendorQueryController;
 use App\Domain\Catalog\Catalog;
+use App\Domain\Claim\ClaimService;
+use App\Domain\Demand\DemandService;
 use App\Domain\Order\OrderService;
 use App\Domain\Order\OrderWorkflowService;
 use App\Domain\Review\ReviewService;
@@ -20,6 +24,7 @@ use App\Path\AliasLookupInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Waaseyaa\Entity\EntityTypeManager;
 use Waaseyaa\Foundation\ServiceProvider\ServiceProvider;
+use Waaseyaa\Mail\MailerInterface;
 use Waaseyaa\Mercure\MercurePublisher;
 use Waaseyaa\Notification\NotificationDispatcher;
 use Waaseyaa\Routing\RouteBuilder;
@@ -85,6 +90,16 @@ final class SiteServiceProvider extends ServiceProvider
             ->controller(fn (Request $r, string $id) => $this->reviewController()->hide($r, $id))
             ->allowAll()->methods('POST')->priority(10)->build());
 
+        // Info-listing engagement: owner claim + "I'd order here" demand vote.
+        // Both CSRF-protected; specific paths before the catch-all /vendor/{slug}.
+        $router->addRoute('claim.create', RouteBuilder::create('/vendor/{slug}/claim')
+            ->controller(fn (Request $r, string $slug) => $this->claimController()->create($r, $slug))
+            ->allowAll()->methods('POST')->priority(10)->build());
+
+        $router->addRoute('demand.vote', RouteBuilder::create('/vendor/{slug}/demand')
+            ->controller(fn (Request $r, string $slug) => $this->demandController()->vote($r, $slug))
+            ->allowAll()->methods('POST')->priority(10)->build());
+
         $router->addRoute('vendor.show', RouteBuilder::create('/vendor/{slug}')
             ->controller(fn (Request $r, string $slug) => $this->vendorController()->show($slug, $this->localeFrom($r)))
             ->allowAll()->methods('GET')->build());
@@ -115,6 +130,7 @@ final class SiteServiceProvider extends ServiceProvider
             $etm->getRepository('menu_item'),
             $etm->getRepository('taxonomy_term'),
             $this->reviewService(),
+            $this->demandService(),
         );
     }
 
@@ -130,6 +146,34 @@ final class SiteServiceProvider extends ServiceProvider
         $secret = (string) ($this->config['mercure']['jwt_secret'] ?? (getenv('WAASEYAA_JWT_SECRET') ?: 'wiisnin'));
 
         return new ReviewController($this->catalog(), $this->reviewService(), $secret);
+    }
+
+    private function demandService(): DemandService
+    {
+        return new DemandService($this->entityTypeManager()->getRepository('demand_vote'));
+    }
+
+    private function demandController(): DemandController
+    {
+        return new DemandController($this->catalog(), $this->demandService());
+    }
+
+    private function claimService(): ClaimService
+    {
+        return new ClaimService($this->entityTypeManager()->getRepository('claim_request'));
+    }
+
+    private function claimController(): ClaimController
+    {
+        $mailer = null;
+        try {
+            $resolved = $this->resolve(MailerInterface::class);
+            $mailer = $resolved instanceof MailerInterface ? $resolved : null;
+        } catch (\Throwable) {
+            $mailer = null;
+        }
+
+        return new ClaimController($this->catalog(), $this->claimService(), $mailer);
     }
 
     private function communityController(): CommunityController
