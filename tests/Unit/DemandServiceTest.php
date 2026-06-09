@@ -41,6 +41,18 @@ final class DemandServiceTest extends TestCase
     }
 
     #[Test]
+    public function an_anonymous_device_cannot_be_deduped_so_each_vote_counts(): void
+    {
+        // Documented best-effort behavior: with no device id we can't dedupe, so
+        // each anonymous vote counts. (The client always sends one; this pins the
+        // fallback so it can't silently change.)
+        $svc = $this->service();
+        $this->assertSame(1, $svc->vote('wing-house', ''));
+        $this->assertSame(2, $svc->vote('wing-house', ''));
+        $this->assertFalse($svc->hasVoted('wing-house', ''));
+    }
+
+    #[Test]
     public function votes_are_scoped_per_vendor(): void
     {
         $svc = $this->service();

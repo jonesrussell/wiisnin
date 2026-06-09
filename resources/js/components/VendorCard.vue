@@ -24,7 +24,7 @@ function open() { router.visit('/vendor/' + props.v.slug) }
 </script>
 
 <template>
-  <div class="vcard" :class="{ sample: !v.is_partner }">
+  <div class="vcard">
     <button class="vcard-main" @click="open">
       <div class="vthumb" :style="thumbStyle">
         <span v-if="dist" class="distbadge">{{ dist }}</span>

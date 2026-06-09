@@ -204,9 +204,9 @@ function placeOrder() {
                 <span class="draft">draft</span>
               </div>
               <div class="stepper">
-                <button v-if="cart[item.id]" class="add" style="background:var(--soft-orange);color:var(--orange-deep)" @click="remove(item)" aria-label="remove one">−</button>
+                <button type="button" v-if="cart[item.id]" class="add" style="background:var(--soft-orange);color:var(--orange-deep)" @click="remove(item)" aria-label="remove one">−</button>
                 <span v-if="cart[item.id]" class="qty">{{ cart[item.id].qty }}</span>
-                <button class="add" @click="add(item)" :aria-label="`add ${item.name}`">+</button>
+                <button type="button" class="add" @click="add(item)" :aria-label="`add ${item.name}`">+</button>
               </div>
             </div>
           </section>
@@ -229,8 +229,8 @@ function placeOrder() {
                 <button v-for="n in 5" :key="n" type="button" class="star" :class="{ on: n <= rv.rating }"
                         :aria-label="`${n} star${n === 1 ? '' : 's'}`" @click="rv.rating = n">★</button>
               </div>
-              <div class="field"><label>Your name</label><input v-model="rv.author_name" type="text" placeholder="Your name" /></div>
-              <div class="field"><label>Your review</label><textarea v-model="rv.body" rows="2" placeholder="How was it?"></textarea></div>
+              <div class="field"><label>Your name <input v-model="rv.author_name" type="text" placeholder="Your name" /></label></div>
+              <div class="field"><label>Your review <textarea v-model="rv.body" rows="2" placeholder="How was it?"></textarea></label></div>
               <p v-if="rvError" class="samplebar">{{ rvError }}</p>
               <button class="cta" type="submit" :disabled="!canReview">{{ rvSubmitting ? 'Saving…' : 'Post review' }}</button>
             </form>
@@ -243,16 +243,16 @@ function placeOrder() {
           <div class="orow" v-for="l in lines" :key="l.item.id"><span>{{ l.qty }}× {{ l.item.name }}</span><span>{{ money(l.qty * l.item.price_cents) }}</span></div>
           <div class="orow tot"><span>Total <span class="draft">draft</span></span><span>{{ money(subtotal) }}</span></div>
           <div style="height:10px"></div>
-          <div class="field"><label>Your name</label><input v-model="form.customer_name" type="text" placeholder="Your name" /></div>
-          <div class="field"><label>Phone</label><input v-model="form.contact_phone" type="tel" placeholder="705-…" /></div>
-          <div class="field"><label>Pickup or delivery</label><div class="toggle">
-            <button :class="{ act: form.fulfilment === 'pickup' }" @click="form.fulfilment = 'pickup'">Pickup</button>
-            <button :class="{ act: form.fulfilment === 'delivery' }" @click="form.fulfilment = 'delivery'">Delivery</button></div></div>
-          <div v-if="form.fulfilment === 'delivery'" class="field"><label>Delivery address</label><input v-model="form.address" type="text" placeholder="Street, community" /></div>
-          <div class="field"><label>Payment (on {{ form.fulfilment }})</label><div class="toggle">
-            <button :class="{ act: form.payment_method === 'cash' }" @click="form.payment_method = 'cash'">Cash</button>
-            <button :class="{ act: form.payment_method === 'etransfer' }" @click="form.payment_method = 'etransfer'">e-Transfer</button></div></div>
-          <div class="field"><label>Notes for the kitchen</label><textarea v-model="form.notes" rows="2" placeholder="e.g. extra gravy"></textarea></div>
+          <div class="field"><label>Your name <input v-model="form.customer_name" type="text" placeholder="Your name" /></label></div>
+          <div class="field"><label>Phone <input v-model="form.contact_phone" type="tel" placeholder="705-…" /></label></div>
+          <div class="field"><span class="field-label">Pickup or delivery</span><div class="toggle">
+            <button type="button" :class="{ act: form.fulfilment === 'pickup' }" @click="form.fulfilment = 'pickup'">Pickup</button>
+            <button type="button" :class="{ act: form.fulfilment === 'delivery' }" @click="form.fulfilment = 'delivery'">Delivery</button></div></div>
+          <div v-if="form.fulfilment === 'delivery'" class="field"><label>Delivery address <input v-model="form.address" type="text" placeholder="Street, community" /></label></div>
+          <div class="field"><span class="field-label">Payment (on {{ form.fulfilment }})</span><div class="toggle">
+            <button type="button" :class="{ act: form.payment_method === 'cash' }" @click="form.payment_method = 'cash'">Cash</button>
+            <button type="button" :class="{ act: form.payment_method === 'etransfer' }" @click="form.payment_method = 'etransfer'">e-Transfer</button></div></div>
+          <div class="field"><label>Notes for the kitchen <textarea v-model="form.notes" rows="2" placeholder="e.g. extra gravy"></textarea></label></div>
           <button class="back" style="margin:0 16px" @click="showCheckout = false">‹ Back to menu</button>
         </template>
       </template>
@@ -278,10 +278,10 @@ function placeOrder() {
             <form v-else class="reviewform" @submit.prevent="submitClaim">
               <h4>Set up ordering for {{ vendor.name }}</h4>
               <p class="muted" style="margin:0 0 10px">Tell us how to reach you and we'll help get {{ vendor.name }} taking orders on Wiisnin.</p>
-              <div class="field"><label>Your name</label><input v-model="claim.owner_name" type="text" placeholder="Your name" /></div>
-              <div class="field"><label>Phone</label><input v-model="claim.phone" type="tel" placeholder="705-…" /></div>
-              <div class="field"><label>Email</label><input v-model="claim.email" type="email" placeholder="you@example.com" /></div>
-              <div class="field"><label>Anything else? (optional)</label><textarea v-model="claim.note" rows="2" placeholder="Best time to call, etc."></textarea></div>
+              <div class="field"><label>Your name <input v-model="claim.owner_name" type="text" placeholder="Your name" /></label></div>
+              <div class="field"><label>Phone <input v-model="claim.phone" type="tel" placeholder="705-…" /></label></div>
+              <div class="field"><label>Email <input v-model="claim.email" type="email" placeholder="you@example.com" /></label></div>
+              <div class="field"><label>Anything else? (optional) <textarea v-model="claim.note" rows="2" placeholder="Best time to call, etc."></textarea></label></div>
               <p v-if="claimError" class="samplebar">{{ claimError }}</p>
               <button class="cta" type="submit" :disabled="!canClaim">{{ claimSubmitting ? 'Sending…' : 'Send' }}</button>
               <button class="back" type="button" style="margin-top:10px" @click="showClaim = false">Cancel</button>

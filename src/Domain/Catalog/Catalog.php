@@ -141,7 +141,8 @@ final class Catalog
             'community' => $this->termName($vendor->getCommunityTermId()),
             'cuisine' => $vendor->getCuisine(),
             'description' => $this->localized($vendor, 'description', $locale),
-            'is_open' => $vendor->isOpen(),
+            // 'open' is the only open/closed signal the UI may show: tri-state
+            // true/false/null (null = unknown -> never fake "Open now").
             'open' => $this->openStatus($vendor),
             'is_partner' => $vendor->isPartner(),
             'contact_phone' => $vendor->getContactPhone(),

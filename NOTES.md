@@ -309,4 +309,10 @@ an info page (no menu).
 - Footer: "Suggest a correction / add a place" → mailto jonesrussell42@gmail.com; trust note added.
 
 Tests: `OpenHoursTest`, `VerifiedSeedDataTest` (counts/exclusions), `DemandServiceTest`,
-`DemandRouteCsrfTest`, `ClaimRouteCsrfTest`.
+`DemandRouteCsrfTest`, `ClaimRouteCsrfTest`, `VendorPageTest` (honesty gating + open tri-state).
+
+**Known follow-up (MVP-acceptable):** the claim/demand POSTs are CSRF-protected but **not
+rate-limited** — a same-origin script (or a user replaying their own token) could spam rows /
+inflate demand (device dedupe is client-supplied, advisory only). Fine for the alpha; add a
+per-session/IP throttle before opening up. The demand count is an advisory signal, not a unique
+metric.

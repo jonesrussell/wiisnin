@@ -99,9 +99,7 @@ a { color: var(--orange-deep); text-decoration: none; }
 .tag { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 7px; padding: 2px 8px; }
 .tag.open { background: var(--soft-teal); color: var(--teal-deep); }
 .tag.closed { background: #F0E7DA; color: #9A8C80; }
-.tag.sample { background: var(--soft-orange); color: var(--orange-deep); }
 .tag.live { background: var(--orange); color: #fff; }
-.tag.dish { background: var(--soft-teal); color: var(--teal-deep); }
 .empty { text-align: center; color: var(--muted); font-size: 14px; font-family: var(--font-display); font-weight: 700; padding: 34px 24px; line-height: 1.5; }
 
 /* Vendor page */
@@ -138,7 +136,8 @@ a { color: var(--orange-deep); text-decoration: none; }
 
 /* Forms */
 .field { margin: 0 16px 14px; }
-.field label { font-family: var(--font-display); font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px; }
+.field label, .field-label { font-family: var(--font-display); font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px; }
+.field label input, .field label textarea { margin-top: 6px; }
 .field input, .field textarea { width: 100%; border: 1px solid var(--line); border-radius: 13px; padding: 12px 13px; font-family: var(--font-body); font-size: 15px; background: #fff; }
 .toggle { display: flex; gap: 8px; }
 .toggle button { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 13px; padding: 12px; font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--muted-2); cursor: pointer; }
