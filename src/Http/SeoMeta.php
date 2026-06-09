@@ -16,18 +16,25 @@ use Waaseyaa\Seo\MetaTagBuilder;
  */
 final class SeoMeta
 {
+    public static function defaultImage(string $baseUrl): string
+    {
+        return rtrim($baseUrl, '/') . '/img/og-default.png';
+    }
+
     public static function forHome(string $baseUrl): string
     {
         return self::render(
             'Wiisnin — order food from North Shore kitchens',
             'Order pickup or delivery from local kitchens across Sagamok, Massey, Espanola and Spanish. Meedjims Foodland is live now.',
             rtrim($baseUrl, '/') . '/',
-            $baseUrl,
+            self::defaultImage($baseUrl),
         );
     }
 
     /**
-     * @param array<string, mixed> $card a Catalog vendor card
+     * @param array<string, mixed> $card a Catalog vendor card; an absolute
+     *   'image' (e.g. the vendor's logo/photo) is used when present, else the
+     *   default brand card.
      */
     public static function forVendor(array $card, string $baseUrl): string
     {
@@ -39,13 +46,13 @@ final class SeoMeta
         $desc = trim(($cuisine !== '' ? $cuisine . '. ' : '') . "Order pickup or delivery from {$name}"
             . ($community !== '' ? " in {$community}" : '') . ' on Wiisnin.');
         $url = rtrim($baseUrl, '/') . '/vendor/' . (string) ($card['slug'] ?? '');
+        $image = ($card['image'] ?? '') !== '' ? (string) $card['image'] : self::defaultImage($baseUrl);
 
-        return self::render($title, $desc, $url, $baseUrl);
+        return self::render($title, $desc, $url, $image);
     }
 
-    private static function render(string $title, string $description, string $url, string $baseUrl): string
+    private static function render(string $title, string $description, string $url, string $image): string
     {
-        $image = rtrim($baseUrl, '/') . '/img/og-default.png';
         $head = new MetaTagBuilder()->buildHeadSnippet($title, $description, $url);
 
         $e = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
