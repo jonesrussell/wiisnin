@@ -27,7 +27,7 @@ final class ReviewServiceTest extends TestCase
         $this->reviews = new InMemoryEntityRepository();
         $this->vendors = new InMemoryEntityRepository();
 
-        $partner = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 1]);
+        $partner = new Vendor(['name' => 'Partner Kitchen', 'slug' => 'partner-kitchen', 'is_partner' => 1]);
         $sample = new Vendor(['name' => 'Tony V\'s Pizza', 'slug' => 'tony-vs-pizza', 'is_partner' => 0]);
         $this->vendors->save($partner);
         $this->vendors->save($sample);

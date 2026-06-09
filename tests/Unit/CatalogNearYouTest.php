@@ -38,7 +38,7 @@ final class CatalogNearYouTest extends TestCase
         $this->masseyTid = (int) $massey->id();
 
         // Meedjims in Sagamok (≈46.131,-82.573); a sample in Massey (≈46.214,-82.083).
-        $meedjims = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 1, 'is_open' => 1, 'community_tid' => $this->sagamokTid, 'latitude' => 46.131, 'longitude' => -82.573]);
+        $meedjims = new Vendor(['name' => 'Partner Kitchen', 'slug' => 'partner-kitchen', 'is_partner' => 1, 'is_open' => 1, 'community_tid' => $this->sagamokTid, 'latitude' => 46.131, 'longitude' => -82.573]);
         $massyV = new Vendor(['name' => 'Back Home Bistro', 'slug' => 'back-home-bistro', 'is_partner' => 0, 'is_open' => 1, 'community_tid' => $this->masseyTid, 'latitude' => 46.214, 'longitude' => -82.083]);
         $this->vendors->save($meedjims);
         $this->vendors->save($massyV);
@@ -56,7 +56,7 @@ final class CatalogNearYouTest extends TestCase
         // A user standing in Sagamok: Meedjims must be first, with a small distance.
         $list = $this->catalog()->vendorsNear(46.131, -82.573, null, null);
 
-        $this->assertSame('Meedjims Foodland', $list[0]['name']);
+        $this->assertSame('Partner Kitchen', $list[0]['name']);
         $this->assertNotNull($list[0]['distance_km']);
         $this->assertLessThan($list[1]['distance_km'], $list[0]['distance_km']);
         $this->assertTrue($list[0]['is_partner']);
@@ -76,6 +76,6 @@ final class CatalogNearYouTest extends TestCase
     {
         $list = $this->catalog()->vendorsNear(46.131, -82.573, null, [$this->meedjimsId]);
         $this->assertCount(1, $list);
-        $this->assertSame('Meedjims Foodland', $list[0]['name']);
+        $this->assertSame('Partner Kitchen', $list[0]['name']);
     }
 }

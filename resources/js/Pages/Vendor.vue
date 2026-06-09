@@ -176,6 +176,7 @@ function placeOrder() {
       <!-- Info + actions: every vendor (call / directions / hours / open). -->
       <div class="infocard" v-if="!showCheckout">
         <div class="infometa">
+          <span class="tag" :class="vendor.is_partner ? 'live' : (vendor.opening_soon ? 'opening' : 'soon')">{{ vendor.is_partner ? 'Order now' : (vendor.opening_soon ? 'Opening soon' : 'Ordering coming soon') }}</span>
           <span v-if="vendor.open !== null && vendor.open !== undefined" class="tag" :class="vendor.open ? 'open' : 'closed'">{{ vendor.open ? 'Open now' : 'Closed' }}</span>
           <span v-if="vendor.hours" class="hours">🕑 {{ vendor.hours }}</span>
           <span v-if="vendor.address" class="addr">📍 {{ vendor.address }}</span>
@@ -259,7 +260,10 @@ function placeOrder() {
 
       <!-- =================== NON-PARTNER: info listing =================== -->
       <template v-else>
-        <div class="draftbar">Ordering coming soon — {{ vendor.name }} isn't on Wiisnin for ordering yet. Call ahead or get directions above.</div>
+        <div class="draftbar">
+          <template v-if="vendor.opening_soon">Opening soon — {{ vendor.name }} is getting ready to open. Tap “I'd order here” below to say you want them on Wiisnin.</template>
+          <template v-else>Ordering coming soon — {{ vendor.name }} isn't on Wiisnin for ordering yet. Call ahead or get directions above.</template>
+        </div>
 
         <!-- Demand signal -->
         <section class="demandbox">

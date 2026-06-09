@@ -53,7 +53,9 @@ final class MeedjimsPhotosTest extends TestCase
         $menuItems = new InMemoryEntityRepository();
         $terms = new InMemoryEntityRepository();
 
-        $meedjims = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 1]);
+        // Meedjims is now a non-partner "opening soon" listing; its photos are
+        // dormant scaffolding and must still map by slug.
+        $meedjims = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 0, 'opening_soon' => 1]);
         $sample = new Vendor(['name' => "Tony V's Pizza", 'slug' => 'tony-vs-pizza', 'is_partner' => 0]);
         $vendors->save($meedjims);
         $vendors->save($sample);

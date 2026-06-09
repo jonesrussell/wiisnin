@@ -17,10 +17,11 @@ use PHPUnit\Framework\TestCase;
 use Waaseyaa\Inertia\Inertia;
 
 /**
- * The vendor page enforces the honesty contract: only the live partner gets a
- * menu + reviews; directory listings are info pages (no menu/reviews). And the
- * "open" status is tri-state — computed from hours, partner flag, or null
- * (unknown) so "Open now" is never faked.
+ * The vendor page enforces the honesty contract: only an ordering partner gets a
+ * menu + reviews. Today NO real vendor is a partner — Meedjims is an "opening
+ * soon" info listing (no menu/reviews/order). The ordering code path stays in
+ * place (proven by a synthetic partner) so it can be re-enabled in one step.
+ * "open" is tri-state — computed from hours, partner flag, or null (never faked).
  */
 final class VendorPageTest extends TestCase
 {
@@ -37,16 +38,21 @@ final class VendorPageTest extends TestCase
         $terms = new InMemoryEntityRepository();
         $reviews = new InMemoryEntityRepository();
 
-        $meedjims = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 1, 'is_open' => 1]);
-        $wing = new Vendor(['name' => 'Wing House', 'slug' => 'wing-house', 'is_partner' => 0]);
+        // Dormant ordering code path: a synthetic partner (no real vendor is a
+        // partner now). Proves menu/reviews/ordering still work when re-enabled.
+        $partner = new Vendor(['name' => 'Future Partner Kitchen', 'slug' => 'partner-kitchen', 'is_partner' => 1, 'is_open' => 1]);
+        // Meedjims: demoted to an "opening soon" directory listing.
+        $meedjims = new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 0, 'opening_soon' => 1]);
+        // A plain open business with real hours.
         $tim = new Vendor(['name' => 'Tim Hortons', 'slug' => 'tim-hortons-espanola', 'is_partner' => 0, 'hours_json' => self::TIM_HOURS]);
+        $vendors->save($partner);
         $vendors->save($meedjims);
-        $vendors->save($wing);
         $vendors->save($tim);
 
+        $menu->save(new MenuItem(['vendor_id' => (int) $partner->id(), 'name' => 'Burger', 'price_cents' => 800, 'available' => 1]));
+        // Meedjims keeps a (dormant) menu item that must NOT surface on its page.
         $menu->save(new MenuItem(['vendor_id' => (int) $meedjims->id(), 'name' => 'Scone', 'price_cents' => 400, 'available' => 1]));
-        $menu->save(new MenuItem(['vendor_id' => (int) $wing->id(), 'name' => 'Should never show', 'price_cents' => 999, 'available' => 1]));
-        $reviews->save(new Review(['vendor_id' => (int) $meedjims->id(), 'author_name' => 'June', 'rating' => 5, 'body' => 'Great', 'status' => 'visible', 'created_at' => 1]));
+        $reviews->save(new Review(['vendor_id' => (int) $partner->id(), 'author_name' => 'June', 'rating' => 5, 'body' => 'Great', 'status' => 'visible', 'created_at' => 1]));
 
         // Fixed clock: Wednesday 10:00 America/Toronto (inside Tim's 05:30–23:00).
         $clock = static fn (): int => (new \DateTimeImmutable('2026-06-10 10:00', new \DateTimeZone('America/Toronto')))->getTimestamp();
@@ -61,9 +67,9 @@ final class VendorPageTest extends TestCase
     }
 
     #[Test]
-    public function the_partner_page_shows_the_menu_and_reviews(): void
+    public function a_partner_page_still_shows_menu_and_reviews_when_one_exists(): void
     {
-        $props = $this->props('meedjims-foodland');
+        $props = $this->props('partner-kitchen');
         $this->assertNotEmpty($props['menu']);
         $this->assertCount(1, $props['reviews']);
         $this->assertTrue($props['pricingDraft']);
@@ -72,23 +78,23 @@ final class VendorPageTest extends TestCase
     }
 
     #[Test]
-    public function a_directory_listing_has_no_menu_or_reviews(): void
+    public function meedjims_is_an_opening_soon_info_page_with_no_menu_or_reviews(): void
     {
-        $props = $this->props('wing-house');
-        $this->assertSame([], $props['menu'], 'non-partner listings never show a menu');
-        $this->assertSame([], $props['reviews'], 'non-partner listings never show reviews');
-        $this->assertNotNull($props['vendor']);
-        $this->assertFalse($props['vendor']['is_partner']);
-        $this->assertNull($props['vendor']['open'], 'unknown hours -> null (never fake Open now)');
+        $props = $this->props('meedjims-foodland');
+        $this->assertFalse($props['vendor']['is_partner'], 'Meedjims is not an ordering partner');
+        $this->assertTrue($props['vendor']['opening_soon'], 'Meedjims reads "Opening soon"');
+        $this->assertSame([], $props['menu'], 'the dormant Meedjims menu must NOT show');
+        $this->assertSame([], $props['reviews'], 'no reviews shown for a non-partner');
+        $this->assertNull($props['vendor']['open'], 'never compute/fake open/closed for Meedjims');
+        $this->assertNotNull($props['vendor']['image'], 'Meedjims keeps its building photo');
     }
 
     #[Test]
     public function a_listing_with_hours_computes_open_closed(): void
     {
-        // Tim Hortons is a non-partner WITH hours: hours take precedence over the
-        // null default, so it shows a real open/closed state.
         $props = $this->props('tim-hortons-espanola');
         $this->assertSame([], $props['menu']);
+        $this->assertFalse($props['vendor']['opening_soon']);
         $this->assertTrue($props['vendor']['open'], 'open at Wed 10:00 within 05:30–23:00');
     }
 }

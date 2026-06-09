@@ -34,18 +34,32 @@ final class VerifiedSeedDataTest extends TestCase
     }
 
     #[Test]
-    public function meedjims_is_the_only_partner_and_the_only_one_with_a_menu(): void
+    public function no_vendor_is_an_ordering_partner_right_now(): void
     {
-        $partners = array_filter($this->vendors(), static fn (array $v): bool => $v['partner'] === true);
-        $this->assertCount(1, $partners);
-        $partner = array_values($partners)[0];
-        $this->assertSame('meedjims-foodland', $partner['slug']);
-        $this->assertNotEmpty($partner['menu']);
+        foreach ($this->vendors() as $v) {
+            $this->assertFalse($v['partner'], "{$v['slug']} must not be a live ordering partner");
+        }
+    }
 
+    #[Test]
+    public function meedjims_is_opening_soon_and_keeps_its_dormant_menu(): void
+    {
+        $byslug = [];
+        foreach ($this->vendors() as $v) {
+            $byslug[$v['slug']] = $v;
+        }
+
+        $meedjims = $byslug['meedjims-foodland'];
+        $this->assertTrue($meedjims['opening_soon'] ?? false, 'Meedjims kitchen is opening soon');
+        $this->assertFalse($meedjims['partner']);
+        // Menu stays as dormant scaffolding so ordering re-enables in one step.
+        $this->assertNotEmpty($meedjims['menu'], 'Meedjims keeps its (dormant) menu scaffolding');
+
+        // It is the only one carrying a menu; only it is "opening soon".
         foreach ($this->vendors() as $v) {
             if ($v['slug'] !== 'meedjims-foodland') {
                 $this->assertSame([], $v['menu'], "{$v['slug']} must have no menu (info listing)");
-                $this->assertFalse($v['partner'], "{$v['slug']} must not be a partner");
+                $this->assertFalse($v['opening_soon'] ?? false, "{$v['slug']} reads 'Ordering coming soon', not 'Opening soon'");
             }
         }
     }

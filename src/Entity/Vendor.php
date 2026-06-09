@@ -66,8 +66,11 @@ final class Vendor extends ContentEntityBase implements NotifiableInterface
     #[Field(type: 'integer', label: 'Logo', description: 'media entity id (mid) for the vendor logo.', stored: FieldStorage::Data)]
     public ?int $logo_mid = null;
 
-    #[Field(type: 'boolean', label: 'Partner', description: 'True = live orderable partner (Meedjims). False = sample listing, not yet a partner.', default: 0, stored: FieldStorage::Data)]
+    #[Field(type: 'boolean', label: 'Partner', description: 'True = live orderable partner. False = directory/info listing. (No vendor is a partner right now — ordering is dormant until a kitchen opens + agrees.)', default: 0, stored: FieldStorage::Data)]
     public bool $is_partner = false;
+
+    #[Field(type: 'boolean', label: 'Opening soon', description: 'True = the kitchen itself isn\'t open yet (e.g. Meedjims) -> badge reads "Opening soon" instead of "Ordering coming soon". Never shows "Open now".', default: 0, stored: FieldStorage::Data)]
+    public bool $opening_soon = false;
 
     #[Field(label: 'Cuisine', description: 'Short cuisine line, e.g. "Native cuisine & grill".', stored: FieldStorage::Data)]
     public string $cuisine = '';
@@ -139,6 +142,11 @@ final class Vendor extends ContentEntityBase implements NotifiableInterface
     public function isPartner(): bool
     {
         return (bool) ($this->get('is_partner') ?? false);
+    }
+
+    public function isOpeningSoon(): bool
+    {
+        return (bool) ($this->get('opening_soon') ?? false);
     }
 
     public function getCuisine(): string

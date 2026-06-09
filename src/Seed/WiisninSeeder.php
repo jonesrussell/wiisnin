@@ -85,6 +85,7 @@ final class WiisninSeeder
                 'address' => $spec['address'],
                 'is_open' => 1,
                 'is_partner' => $spec['partner'] ? 1 : 0,
+                'opening_soon' => ($spec['opening_soon'] ?? false) ? 1 : 0,
                 'owner_group_id' => $groupId,
                 'contact_phone' => $spec['phone'],
                 'contact_email' => '',
@@ -113,7 +114,7 @@ final class WiisninSeeder
 
         $io->writeln($created === 0
             ? 'All vendors already seeded; nothing to do.'
-            : "Seeded {$created} vendor(s): 1 live partner (Meedjims) + sample listings. DRAFT prices.");
+            : "Seeded {$created} vendor(s): directory listings (no live ordering partner yet; Meedjims = opening soon).");
         $io->writeln('Roles: ' . implode(', ', array_keys(CommerceAccess::roles())));
 
         return 0;

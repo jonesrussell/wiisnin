@@ -34,7 +34,7 @@ function open() { router.visit('/vendor/' + props.v.slug) }
         <p>{{ v.community }}<template v-if="v.cuisine"> · {{ v.cuisine }}</template></p>
         <div class="tags">
           <span v-if="v.open !== null && v.open !== undefined" class="tag" :class="v.open ? 'open' : 'closed'">{{ v.open ? 'Open now' : 'Closed' }}</span>
-          <span class="tag" :class="v.is_partner ? 'live' : 'soon'">{{ v.is_partner ? 'Order now' : 'Ordering coming soon' }}</span>
+          <span class="tag" :class="v.is_partner ? 'live' : (v.opening_soon ? 'opening' : 'soon')">{{ v.is_partner ? 'Order now' : (v.opening_soon ? 'Opening soon' : 'Ordering coming soon') }}</span>
           <span v-if="v.rating && v.rating.count > 0" class="tag rate"><span class="stars">{{ stars(v.rating.average) }}</span> {{ v.rating.average }} ({{ v.rating.count }})</span>
           <span v-if="v.demand > 0" class="tag demand">👍 {{ v.demand }} want ordering</span>
         </div>

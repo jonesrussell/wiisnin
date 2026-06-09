@@ -198,6 +198,7 @@ a { color: var(--orange-deep); text-decoration: none; }
 .reviewform h4 { font-family: var(--font-display); font-weight: 800; margin: 0 0 8px; }
 .tag.rate { background: var(--soft-orange); color: var(--orange-deep); }
 .tag.soon { background: var(--soft-teal); color: var(--teal-deep); }
+.tag.opening { background: var(--soft-orange); color: var(--orange-deep); }
 .tag.demand { background: #E6F0FA; color: var(--blue); }
 .muted { color: var(--muted-2); font-size: 13px; margin: 0 16px 10px; }
 

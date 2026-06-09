@@ -8,9 +8,12 @@ namespace App\Support;
  * The VERIFIED vendor dataset (AREA-VENDORS-VERIFIED.md, 2026-06-09), cross-checked
  * against the Township of Sables-Spanish Rivers dining directory + business listings.
  *
- * Ordering is live for **Meedjims only** (the one partner). Everyone else is a
- * directory/info listing (name, town, cuisine, phone, address, hours) with an
- * "ordering coming soon / claim this listing" CTA — no menu, no ordering.
+ * NO vendor is an ordering partner right now — every kitchen is a directory/info
+ * listing (name, town, cuisine, phone, address, hours) with a demand button +
+ * "claim this listing" CTA, no menu/ordering. Meedjims is "Opening soon" (its
+ * kitchen isn't open yet); the rest are open businesses that read "Ordering
+ * coming soon". Meedjims' menu/photos are dormant scaffolding for one-step
+ * re-enable (flip its 'partner' flag).
  *
  * EXCLUDED on purpose (flagged unconfirmed/closed in the verified file): Back Home
  * Bistro, Tony V's Pizza, Deluxe Drive-In. Jones General Store is excluded too —
@@ -36,12 +39,17 @@ final class VendorData
     public static function vendors(): array
     {
         return [
-            // --- Sagamok (home) — the one live partner ---------------------------
+            // --- Sagamok (home) -------------------------------------------------
+            // Meedjims is a directory listing for now: the kitchen isn't open yet
+            // ("Opening soon"). Its menu/photos below are DORMANT scaffolding —
+            // flip 'partner' => true (and drop 'opening_soon') to turn ordering on
+            // in one step when they open + agree. No vendor is a partner today.
             [
                 'slug' => 'meedjims-foodland', 'name' => 'Meedjims Foodland', 'community' => 'Sagamok',
                 'cuisine' => 'Native cuisine & grill',
-                'description' => 'Family-owned in Sagamok First Nation, recently reopened. The one live Wiisnin ordering partner.',
-                'partner' => true, 'phone' => '705-865-1537', 'address' => '', 'hours' => '', 'hours_json' => '',
+                'description' => 'Family-owned in Sagamok First Nation. Getting ready to reopen — ordering on Wiisnin coming when they open.',
+                'partner' => false, 'opening_soon' => true,
+                'phone' => '705-865-1537', 'address' => '', 'hours' => '', 'hours_json' => '',
                 'jitter' => [0.0, 0.0],
                 'menu' => [
                     ['Native cuisine', 'Scone', 400], ['Native cuisine', 'Indian taco', 1400],

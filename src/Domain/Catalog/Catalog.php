@@ -145,6 +145,7 @@ final class Catalog
             // true/false/null (null = unknown -> never fake "Open now").
             'open' => $this->openStatus($vendor),
             'is_partner' => $vendor->isPartner(),
+            'opening_soon' => $vendor->isOpeningSoon(),
             'contact_phone' => $vendor->getContactPhone(),
             'address' => $vendor->getAddress(),
             'maps_url' => $this->mapsUrl($vendor),

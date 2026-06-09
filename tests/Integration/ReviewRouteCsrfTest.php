@@ -35,7 +35,7 @@ final class ReviewRouteCsrfTest extends TestCase
         $this->terms = new InMemoryEntityRepository();
         $this->reviews = new InMemoryEntityRepository();
 
-        $this->vendors->save(new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 1]));
+        $this->vendors->save(new Vendor(['name' => 'Partner Kitchen', 'slug' => 'partner-kitchen', 'is_partner' => 1]));
         $this->vendors->save(new Vendor(['name' => "Tony V's Pizza", 'slug' => 'tony-vs-pizza', 'is_partner' => 0]));
 
         // The controller validates against the framework's session CSRF token.
@@ -76,7 +76,7 @@ final class ReviewRouteCsrfTest extends TestCase
     #[Test]
     public function a_post_without_a_token_is_rejected(): void
     {
-        $response = $this->controller()->create($this->postReview('meedjims-foodland', null), 'meedjims-foodland');
+        $response = $this->controller()->create($this->postReview('partner-kitchen', null), 'partner-kitchen');
 
         $this->assertSame(403, $response->getStatusCode());
         $this->assertCount(0, $this->reviews->findBy([]), 'no review should be written on a CSRF failure');
@@ -85,7 +85,7 @@ final class ReviewRouteCsrfTest extends TestCase
     #[Test]
     public function a_post_with_a_bad_token_is_rejected(): void
     {
-        $response = $this->controller()->create($this->postReview('meedjims-foodland', 'wrong-token'), 'meedjims-foodland');
+        $response = $this->controller()->create($this->postReview('partner-kitchen', 'wrong-token'), 'partner-kitchen');
 
         $this->assertSame(403, $response->getStatusCode());
         $this->assertCount(0, $this->reviews->findBy([]));
@@ -94,7 +94,7 @@ final class ReviewRouteCsrfTest extends TestCase
     #[Test]
     public function a_valid_in_app_post_succeeds(): void
     {
-        $response = $this->controller()->create($this->postReview('meedjims-foodland', self::TOKEN), 'meedjims-foodland');
+        $response = $this->controller()->create($this->postReview('partner-kitchen', self::TOKEN), 'partner-kitchen');
 
         $this->assertSame(200, $response->getStatusCode());
         $data = json_decode((string) $response->getContent(), true);
@@ -109,8 +109,8 @@ final class ReviewRouteCsrfTest extends TestCase
         // The XSRF-TOKEN cookie value is rawurlencoded; the header echoes it
         // verbatim and the server rawurldecodes before comparison.
         $response = $this->controller()->create(
-            $this->postReview('meedjims-foodland', rawurlencode(self::TOKEN)),
-            'meedjims-foodland',
+            $this->postReview('partner-kitchen', rawurlencode(self::TOKEN)),
+            'partner-kitchen',
         );
 
         $this->assertSame(200, $response->getStatusCode());

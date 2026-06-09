@@ -29,7 +29,9 @@ final class DemandRouteCsrfTest extends TestCase
         $this->vendors = new InMemoryEntityRepository();
         $this->votes = new InMemoryEntityRepository();
         $this->vendors->save(new Vendor(['name' => 'Wing House', 'slug' => 'wing-house', 'is_partner' => 0]));
-        $this->vendors->save(new Vendor(['name' => 'Meedjims Foodland', 'slug' => 'meedjims-foodland', 'is_partner' => 1]));
+        // A synthetic partner exercises the partner-guard (no real vendor is a
+        // partner today; the guard stays for when ordering is re-enabled).
+        $this->vendors->save(new Vendor(['name' => 'Partner Kitchen', 'slug' => 'partner-kitchen', 'is_partner' => 1]));
         $_SESSION['_csrf_token'] = self::TOKEN;
     }
 
@@ -103,7 +105,7 @@ final class DemandRouteCsrfTest extends TestCase
     #[Test]
     public function a_partner_cannot_be_voted_on(): void
     {
-        $response = $this->controller()->vote($this->post('meedjims-foodland', self::TOKEN, 'dev-1'), 'meedjims-foodland');
+        $response = $this->controller()->vote($this->post('partner-kitchen', self::TOKEN, 'dev-1'), 'partner-kitchen');
         $this->assertSame(422, $response->getStatusCode());
         $this->assertCount(0, $this->votes->findBy([]));
     }

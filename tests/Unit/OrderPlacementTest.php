@@ -48,8 +48,8 @@ final class OrderPlacementTest extends TestCase
         $this->mercure = new RecordingChannel();
 
         $vendor = new Vendor([
-            'name' => 'Meedjims Foodland',
-            'slug' => 'meedjims-foodland',
+            'name' => 'Partner Kitchen',
+            'slug' => 'partner-kitchen',
             'is_open' => 1,
             'is_partner' => 1,
             'contact_email' => 'meedjims@example.test',

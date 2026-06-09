@@ -284,8 +284,8 @@ seam left above); decorative Anishinaabe floral motifs (await Russell + communit
 ## Phase 3 — verified directory + info MVP
 
 **Verified seed** (`App\Support\VendorData`, source `AREA-VENDORS-VERIFIED.md`): **21 vendors
-across 8 towns**. Meedjims (Sagamok) is the only ordering partner (keeps menu/photos/reviews/
-ordering); the other 20 are directory/info listings (no menu/ordering). Excluded the 3 flagged
+across 8 towns**, **all directory/info listings — no vendor is an ordering partner right now**
+(Meedjims included). The ordering/menu/reviews code stays in place but dormant. Excluded the 3 flagged
 unconfirmed/closed (Back Home Bistro, Tony V's, Deluxe Drive-In) **and** Jones General Store
 (a shop, not an eatery). Communities (`App\Support\Communities`, chips + `/c/{slug}`): Sagamok,
 Massey, Walford, Spanish (incl. Cutler), Webbwood, Espanola, McKerrow, Nairn Centre. Coordinates
@@ -310,6 +310,15 @@ an info page (no menu).
 
 Tests: `OpenHoursTest`, `VerifiedSeedDataTest` (counts/exclusions), `DemandServiceTest`,
 `DemandRouteCsrfTest`, `ClaimRouteCsrfTest`, `VendorPageTest` (honesty gating + open tri-state).
+
+**Meedjims = "Opening soon" (demoted):** Meedjims' kitchen isn't open yet, so it's a directory
+listing like the rest, but with a distinct **"Opening soon"** badge (`opening_soon=true` on the
+vendor; drives `.tag.opening`) vs everyone else's **"Ordering coming soon"**. No menu, no cart,
+no order button, no reviews, no draft prices, and **never "Open now"** (`openStatus` returns null
+for it). It keeps its building photo, town, cuisine, Call, Directions, and the "I'd order here 👍"
+demand button. Its menu/photos/reviews scaffolding is dormant — flip `partner` back to `true` in
+`VendorData` to re-enable ordering in one step. `OrderService` also rejects non-partners, so
+nothing is orderable end-to-end.
 
 **Known follow-up (MVP-acceptable):** the claim/demand POSTs are CSRF-protected but **not
 rate-limited** — a same-origin script (or a user replaying their own token) could spam rows /
