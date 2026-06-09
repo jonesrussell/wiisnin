@@ -61,7 +61,34 @@ final class SeoInjector
         }
 
         $card = self::vendorCard($slug, $projectRoot);
-        return $card !== null ? SeoMeta::forVendor($card, $base) : '';
+        if ($card === null) {
+            return '';
+        }
+
+        // A vendor with a real share photo (only live partners) uses it as the
+        // og:image; everyone else falls back to the default brand card.
+        $ogImage = self::vendorOgImage($slug, $projectRoot);
+        if ($ogImage !== null) {
+            $card['image'] = rtrim($base, '/') . $ogImage;
+        }
+
+        return SeoMeta::forVendor($card, $base);
+    }
+
+    /**
+     * Absolute-path of a vendor's dedicated 1200x630 share image, or null when
+     * the vendor has none (keeps the default card). Checks the file is actually
+     * deployed so we never advertise a 404 image to scrapers.
+     */
+    private static function vendorOgImage(string $slug, string $projectRoot): ?string
+    {
+        $map = ['meedjims-foodland' => '/img/meedjims/og-meedjims.jpg'];
+        $path = $map[$slug] ?? null;
+        if ($path === null) {
+            return null;
+        }
+
+        return is_file($projectRoot . '/public' . $path) ? $path : null;
     }
 
     private static function pdo(string $projectRoot): ?\PDO

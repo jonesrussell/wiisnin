@@ -17,6 +17,23 @@ use Waaseyaa\Geo\GeoDistance;
  */
 final class Catalog
 {
+    /**
+     * Real photos, keyed by vendor slug. Only live partners have them; everyone
+     * else keeps the warm colour-tint placeholders (honesty rule). Item keys are
+     * the lower-cased English menu-item name. Files are served from public/img/.
+     *
+     * @var array<string, array{hero: string, items: array<string, string>}>
+     */
+    private const VENDOR_PHOTOS = [
+        'meedjims-foodland' => [
+            'hero' => '/img/meedjims/building.jpg',
+            'items' => [
+                'corn soup' => '/img/meedjims/corn-soup.jpg',
+                'cheese fries' => '/img/meedjims/cheese-fries.jpg',
+            ],
+        ],
+    ];
+
     /** @var array<int, ?string> tid => term name cache */
     private array $termNames = [];
 
@@ -111,6 +128,7 @@ final class Catalog
             'is_partner' => $vendor->isPartner(),
             'distance_km' => $distanceKm === null ? null : round($distanceKm, $distanceKm < 10 ? 1 : 0),
             'rating' => $this->reviews?->summary((int) $vendor->id()) ?? ['average' => null, 'count' => 0],
+            'image' => self::VENDOR_PHOTOS[(string) $vendor->getSlug()]['hero'] ?? null,
         ];
     }
 
@@ -133,6 +151,10 @@ final class Catalog
      */
     public function menuForVendor(int $vendorId, string $locale = 'en'): array
     {
+        $vendor = $this->vendors->find((string) $vendorId);
+        $slug = $vendor instanceof Vendor ? (string) $vendor->getSlug() : '';
+        $itemPhotos = self::VENDOR_PHOTOS[$slug]['items'] ?? [];
+
         $groups = [];
         foreach ($this->menuItems->findBy(['vendor_id' => $vendorId]) as $item) {
             if (!$item instanceof MenuItem) {
@@ -146,6 +168,7 @@ final class Catalog
                 'description' => $this->localized($item, 'description', $locale),
                 'price_cents' => $item->getPriceCents(),
                 'available' => $item->isAvailable(),
+                'image' => $itemPhotos[strtolower(trim($item->getName()))] ?? null,
             ];
         }
 

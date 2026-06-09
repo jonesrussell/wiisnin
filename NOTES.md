@@ -188,11 +188,12 @@ and `docker compose exec -u www-data wiisnin-app vendor/bin/waaseyaa db:init --s
 - [x] Create the GitHub remote `jonesrussell/wiisnin` and push — done (public).
 - [ ] Confirm Meedjims Foodland's real menu prices with the family (currently DRAFT,
       badged "to be confirmed" everywhere).
-- [ ] **Meedjims real photos** — drop the 3 shots (building, corn soup, cheese fries) into
-      `C:\Users\jones\Projects\business\local-eats\meedjims-photos\` (currently only a
-      README placeholder — no images). Once present they wire into the vendor hero, the
-      Corn soup / Cheese fries menu items, and Meedjims' og:image (building shot). Until
-      then the warm color-tint placeholders stay. (Job 2 of Session 7 skipped cleanly: folder empty.)
+- [x] **Meedjims real photos** — DONE. The 3 shots (building, corn soup, cheese fries) were
+      dropped into `…\local-eats\meedjims-photos\` and wired in: optimized JPEGs under
+      `public/img/meedjims/` (building.jpg 960w hero, corn-soup.jpg, cheese-fries.jpg ≤800w,
+      og-meedjims.jpg 1200×630 share crop). Building → vendor hero (`.hero--photo` scrim) +
+      Meedjims og:image (`SeoInjector::vendorOgImage`); corn-soup/cheese-fries → those menu
+      items (`Catalog::VENDOR_PHOTOS`). All other items keep colour-tint placeholders.
 - [ ] Future: SMS notification channel (Twilio) — interface stub only this session.
 - [ ] Optional CI: a `deploy-wiisnin.yml` workflow (needs `gh auth refresh -s workflow`).
 
@@ -268,5 +269,5 @@ Vendors (seeded, `app:seed`, idempotent): **Meedjims Foodland (Sagamok)** = the 
   whole number above). Honest, no fake precision.
 
 Out of scope (next phase, not built): real Nishnaabemwin translations (community deliverable —
-seam left above); Meedjims real photos (placeholders kept — see TODO); decorative Anishinaabe
-floral motifs (await Russell + community sign-off).
+seam left above); decorative Anishinaabe floral motifs (await Russell + community sign-off).
+(Meedjims real photos — now wired in, see TODO above.)

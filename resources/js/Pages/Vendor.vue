@@ -90,13 +90,15 @@ function placeOrder() {
     </template>
 
     <template v-if="vendor">
-      <div class="hero">
-        <h2>{{ vendor.name }}</h2>
-        <p>{{ vendor.cuisine }} · {{ vendor.is_open ? 'Open now' : 'Closed' }} · pickup or delivery</p>
-        <p v-if="ratingSum.count > 0" class="rating-sum">
-          <span class="stars">{{ stars(ratingSum.average) }}</span>
-          <b>{{ ratingSum.average }}</b> · {{ ratingSum.count }} review{{ ratingSum.count === 1 ? '' : 's' }}
-        </p>
+      <div class="hero" :class="{ 'hero--photo': vendor.image }" :style="vendor.image ? { backgroundImage: `url(${vendor.image})` } : null">
+        <div class="hero-body">
+          <h2>{{ vendor.name }}</h2>
+          <p>{{ vendor.cuisine }} · {{ vendor.is_open ? 'Open now' : 'Closed' }} · pickup or delivery</p>
+          <p v-if="ratingSum.count > 0" class="rating-sum">
+            <span class="stars">{{ stars(ratingSum.average) }}</span>
+            <b>{{ ratingSum.average }}</b> · {{ ratingSum.count }} review{{ ratingSum.count === 1 ? '' : 's' }}
+          </p>
+        </div>
       </div>
 
       <p v-if="!orderable" class="samplebar">
@@ -109,7 +111,7 @@ function placeOrder() {
         <section v-for="group in menu" :key="group.category">
           <h3 class="menu-cat-title">{{ group.category }}</h3>
           <div class="item" v-for="item in group.items" :key="item.id">
-            <div class="ithumb" aria-hidden="true"></div>
+            <div class="ithumb" :class="{ 'ithumb--photo': item.image }" :style="item.image ? { backgroundImage: `url(${item.image})` } : null" aria-hidden="true"></div>
             <div style="flex:1">
               <h4>{{ item.name }}</h4>
               <p v-if="item.description">{{ item.description }}</p>
