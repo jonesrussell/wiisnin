@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Entity\ClaimRequest;
 use App\Entity\DemandVote;
+use App\Entity\Event;
 use App\Entity\GroupMembership;
 use App\Entity\MenuItem;
 use App\Entity\Order;
@@ -69,5 +70,11 @@ return [
         label: 'Demand vote',
         class: DemandVote::class,
         keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'vendor_slug'],
+    ),
+    new EntityType(
+        id: 'event',
+        label: 'Event',
+        class: Event::class,
+        keys: ['id' => 'id', 'uuid' => 'uuid', 'label' => 'event_type'],
     ),
 ];

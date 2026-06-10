@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { track } from '../analytics.js'
 
 const props = defineProps({
   v: { type: Object, required: true },
@@ -41,8 +42,8 @@ function open() { router.visit('/vendor/' + props.v.slug) }
       </div>
     </button>
     <div v-if="v.contact_phone || v.maps_url" class="vactions">
-      <a v-if="v.contact_phone" class="vaction" :href="telHref(v.contact_phone)" @click.stop>📞 Call</a>
-      <a v-if="v.maps_url" class="vaction" :href="v.maps_url" target="_blank" rel="noopener" @click.stop>🧭 Directions</a>
+      <a v-if="v.contact_phone" class="vaction" :href="telHref(v.contact_phone)" @click.stop="track('call', { slug: v.slug })">📞 Call</a>
+      <a v-if="v.maps_url" class="vaction" :href="v.maps_url" target="_blank" rel="noopener" @click.stop="track('directions', { slug: v.slug })">🧭 Directions</a>
     </div>
   </div>
 </template>

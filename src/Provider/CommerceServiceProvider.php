@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Provider;
 
 use App\Access\VendorStaffDirectory;
+use App\Analytics\AnalyticsReport;
 use App\Domain\Catalog\Catalog;
 use App\Domain\Claim\ClaimService;
 use App\Domain\Demand\DemandService;
@@ -293,6 +294,56 @@ final class CommerceServiceProvider extends ServiceProvider implements HasNative
                         $io->writeln('        note: ' . $c['note']);
                     }
                 }
+
+                return 0;
+            },
+        );
+
+        yield new CommandDefinition(
+            name: 'app:insights',
+            description: 'First-party analytics for outreach: pageviews, top vendors viewed, most-called/directions, top searches, referrers, demand leaders.',
+            handler: function (CliIO $io): int {
+                $etm = $this->resolve(EntityTypeManager::class);
+                if (!$etm instanceof EntityTypeManager) {
+                    $io->error('Insights requires a booted kernel (EntityTypeManager).');
+                    return 1;
+                }
+                $report = new AnalyticsReport($etm->getRepository('event'));
+
+                $names = [];
+                foreach ($etm->getRepository('vendor')->findBy([]) as $v) {
+                    if ($v instanceof Vendor) {
+                        $names[$v->getSlug()] = $v->getName();
+                    }
+                }
+                $label = static fn (string $slug): string => $names[$slug] ?? $slug;
+
+                $section = static function (string $title, array $rows, callable $fmt) use ($io): void {
+                    $io->writeln('');
+                    $io->writeln($title . ':');
+                    if ($rows === []) {
+                        $io->writeln('  (none yet)');
+                        return;
+                    }
+                    foreach ($rows as $key => $count) {
+                        $io->writeln(sprintf('  %4d  %s', $count, $fmt((string) $key)));
+                    }
+                };
+
+                $io->writeln('Wiisnin insights');
+                $io->writeln('================');
+                $io->writeln(sprintf('Pageviews: %d   Unique views: %d', $report->pageviews(), $report->uniqueViews()));
+
+                $section('Top vendors viewed', $report->topVendorsViewed(), $label);
+                $section('Most called', $report->mostCalled(), $label);
+                $section('Most directions', $report->mostDirections(), $label);
+                $section('Top searches', $report->topSearchTerms(), static fn (string $q): string => '"' . $q . '"');
+                $section('Top referrers', $report->topReferrers(), static fn (string $h): string => $h);
+
+                // Demand leaders from the authoritative demand_vote store.
+                $counts = new DemandService($etm->getRepository('demand_vote'))->counts();
+                arsort($counts);
+                $section("Demand leaders (I'd order here)", array_slice($counts, 0, 10, true), $label);
 
                 return 0;
             },

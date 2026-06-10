@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Provider;
 
+use App\Analytics\AnalyticsRecorder;
 use App\Controller\ClaimController;
+use App\Controller\CollectController;
 use App\Controller\CommunityController;
 use App\Controller\DemandController;
 use App\Controller\LandingController;
@@ -109,6 +111,11 @@ final class SiteServiceProvider extends ServiceProvider
             ->controller(fn (Request $r) => $this->vendorQueryController()->index($r))
             ->allowAll()->methods('GET')->build());
 
+        // First-party analytics ingest (public, no cookies, always 204).
+        $router->addRoute('analytics.collect', RouteBuilder::create('/api/collect')
+            ->controller(fn (Request $r) => $this->collectController()->collect($r))
+            ->allowAll()->methods('POST')->build());
+
         // Clean vendor aliases (path package), e.g. /meedjims. Constrained to a
         // plain slug (no dots/slashes) so it can't shadow /robots.txt etc., and
         // given a priority that beats the SSR page fallback but stays below the
@@ -151,6 +158,13 @@ final class SiteServiceProvider extends ServiceProvider
     private function demandService(): DemandService
     {
         return new DemandService($this->entityTypeManager()->getRepository('demand_vote'));
+    }
+
+    private function collectController(): CollectController
+    {
+        $secret = (string) ($this->config['mercure']['jwt_secret'] ?? (getenv('WAASEYAA_JWT_SECRET') ?: 'wiisnin'));
+
+        return new CollectController(new AnalyticsRecorder($this->entityTypeManager()->getRepository('event'), $secret));
     }
 
     private function demandController(): DemandController

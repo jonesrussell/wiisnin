@@ -1,12 +1,18 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
+import { onMounted } from 'vue'
 import { useI18n } from '../i18n.js'
+import { initAnalytics } from '../analytics.js'
 
 defineProps({
   app: { type: Object, required: true },
 })
 
 const { locale, setLocale, t } = useI18n()
+
+// First-party analytics: pageview per navigation + engagement beacon. Guarded
+// internally (DNT/GPC, init-once) so calling it from every page is safe.
+onMounted(initAnalytics)
 </script>
 
 <template>

@@ -1,8 +1,9 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import AppShell from '../Layouts/AppShell.vue'
 import { money } from '../lib/format.js'
+import { track } from '../analytics.js'
 
 const props = defineProps({
   app: { type: Object, required: true },
@@ -22,6 +23,9 @@ const pageTitle = computed(() => {
 
 function stars(n) { const r = Math.round(n || 0); return '★★★★★'.slice(0, r) + '☆☆☆☆☆'.slice(0, 5 - r) }
 function telHref(p) { return 'tel:' + String(p || '').replace(/[^0-9+]/g, '') }
+
+// Analytics: a vendor_view when this page opens.
+onMounted(() => { if (props.vendor) track('vendor_view', { slug: props.vendor.slug }) })
 
 // The framework sets a non-HttpOnly XSRF-TOKEN cookie on every HTML page load;
 // echo it back as X-XSRF-TOKEN so the server can verify the request is in-app.
@@ -95,6 +99,7 @@ async function voteDemand() {
     if (res.ok && data.ok) {
       demandCount.value = data.count
       voted.value = true
+      track('demand', { slug: props.vendor.slug })
       try { localStorage.setItem('wsn_demand_' + props.vendor.slug, '1') } catch (e) { /* ignore */ }
     }
   } catch (e) { /* ignore */ } finally { demandBusy.value = false }
@@ -182,8 +187,8 @@ function placeOrder() {
           <span v-if="vendor.address" class="addr">📍 {{ vendor.address }}</span>
         </div>
         <div class="infoactions">
-          <a v-if="vendor.contact_phone" class="vaction big" :href="telHref(vendor.contact_phone)">📞 Call</a>
-          <a v-if="vendor.maps_url" class="vaction big" :href="vendor.maps_url" target="_blank" rel="noopener">🧭 Directions</a>
+          <a v-if="vendor.contact_phone" class="vaction big" :href="telHref(vendor.contact_phone)" @click="track('call', { slug: vendor.slug })">📞 Call</a>
+          <a v-if="vendor.maps_url" class="vaction big" :href="vendor.maps_url" target="_blank" rel="noopener" @click="track('directions', { slug: vendor.slug })">🧭 Directions</a>
         </div>
       </div>
 

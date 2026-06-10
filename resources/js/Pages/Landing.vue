@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import AppShell from '../Layouts/AppShell.vue'
 import VendorCard from '../components/VendorCard.vue'
 import { useI18n } from '../i18n.js'
+import { track } from '../analytics.js'
 
 const props = defineProps({
   app: { type: Object, required: true },
@@ -33,7 +34,7 @@ async function load() {
   const p = new URLSearchParams()
   if (coords.value) { p.set('lat', coords.value.lat); p.set('lng', coords.value.lng) }
   if (community.value !== 'All') p.set('community', community.value)
-  if (search.value.trim()) p.set('q', search.value.trim())
+  if (search.value.trim()) { p.set('q', search.value.trim()); track('search', { q: search.value.trim() }) }
   if (locale.value === 'oj') p.set('lang', 'oj')
   try {
     const res = await fetch('/api/vendors?' + p.toString(), { credentials: 'same-origin' })

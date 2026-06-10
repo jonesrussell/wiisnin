@@ -325,3 +325,28 @@ rate-limited** — a same-origin script (or a user replaying their own token) co
 inflate demand (device dedupe is client-supplied, advisory only). Fine for the alpha; add a
 per-session/IP throttle before opening up. The demand count is an advisory signal, not a unique
 metric.
+
+---
+
+## Phase 4 — first-party analytics (no third parties)
+
+Privacy-respecting, self-hosted on the Pi. **No cookies, no fingerprinting, no third-party
+trackers**, and **skipped entirely under Do Not Track / Global Privacy Control**.
+
+- **Ingest:** public `POST /api/collect` (`CollectController`) — always 204, 2 KB body cap, lenient
+  same-origin check, `credentials:'omit'`. `App\Analytics\AnalyticsRecorder` validates the payload,
+  filters bots (UA), stores **no PII** (visitor = daily-salted one-way hash of IP+UA), and applies a
+  light per-visitor rate limit. Rows are the append-only `event` entity. Modeled on oiatc.
+- **Client:** `resources/js/analytics.js` (loaded once from `AppShell`). SPA-aware: a fresh
+  **pageview** per Inertia navigation, per-view **engagement** beacon (max scroll %, dwell via
+  `navigator.sendBeacon`) on navigate + page hide. Wiisnin events: **vendor_view** (vendor page open),
+  **call** / **directions** (button taps, card + detail), **search** (debounced query), **demand**
+  ("I'd order here" sent). Payload keys mirror oiatc (`t/p/r/v/s/d` + `slug`/`q`).
+- **Read:** `vendor/bin/waaseyaa app:insights` — pageviews, unique views (by viewId), top vendors
+  viewed, most-called, most-directions, top search terms, top referrers, and demand leaders (from the
+  authoritative `demand_vote` store). Slugs resolved to vendor names.
+- **Tests:** `AnalyticsRecorderTest` (valid/each-type/malformed/bot/rate-limit/no-PII),
+  `CollectRouteTest` (204 always, stores valid, drops malformed/oversized/cross-origin),
+  `AnalyticsReportTest` (counts + top-N rollups).
+- **Cloudflare Web Analytics:** NOT injecting on wiisnin.ca (no `/cdn-cgi/rum` beacon) — enable via
+  the Cloudflare dashboard if wanted (toggle, not code); independent of this first-party pipeline.
